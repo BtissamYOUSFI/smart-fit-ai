@@ -1,1 +1,1 @@
-# projet-fin-semestre
+# smart-fit-ai
