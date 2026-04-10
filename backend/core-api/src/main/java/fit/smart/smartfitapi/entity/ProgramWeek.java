@@ -36,13 +36,10 @@ public class ProgramWeek {
     @JoinColumn(name = "weekly_template_id")
     private WeeklyTemplate weeklyTemplate;
 
+    @Getter
     @OneToMany(mappedBy = "programWeek", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
     private List<Session> sessions = new ArrayList<>();
-
-    public List<Session> getSessions() {
-        return sessions;
-    }
 
     public void resetToTemplate() {
         if (weeklyTemplate != null) {
