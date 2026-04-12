@@ -4,11 +4,13 @@ import fit.smart.smartfitapi.entity.User;
 import fit.smart.smartfitapi.repository.UserRepository;
 import fit.smart.smartfitapi.service.facade.UserService;
 import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @AllArgsConstructor
+@Service
 public class UserServiceImpl implements UserService {
     @Override
     public User findByEmail(String email) {
@@ -30,8 +32,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void delete(User user) {
-        repository.delete(user);
+    public int deleteByEmail(String email) {
+        if (this.findByEmail(email) == null) {
+            return -1;
+        }
+        return repository.deleteByEmail(email);
     }
 
     @Override
@@ -43,5 +48,4 @@ public class UserServiceImpl implements UserService {
     }
 
     private final UserRepository repository;
-
 }
