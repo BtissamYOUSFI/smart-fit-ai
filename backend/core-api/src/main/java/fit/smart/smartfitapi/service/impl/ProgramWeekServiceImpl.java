@@ -6,33 +6,31 @@ import fit.smart.smartfitapi.service.facade.ProgramWeekService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ProgramWeekServiceImpl implements ProgramWeekService {
-    @Autowired private ProgramWeekRepository repository;
+
+    @Override
+    public List<ProgramWeek> findAll() {
+        return repo.findAll();
+    }
+
+    @Override
+    public ProgramWeek findById(Long id) {
+        return repo.findById(id).orElse(null);
+    }
 
     @Override
     public ProgramWeek save(ProgramWeek programWeek) {
-            if (repository.findProgramWeekById(programWeek.getId()) != null) {
-                return null;
-            }
-            return repository.save(programWeek);
+        return repo.save(programWeek);
     }
 
     @Override
-    public ProgramWeek update(ProgramWeek programWeek) {
-        if (repository.findProgramWeekById(programWeek.getId()) == null) {
-            return null;
-        }
-        return repository.save(programWeek);
+    public int deleteById(Long id) {
+        return repo.deleteProgramWeekById(id);
     }
 
-    @Override
-    public void delete(ProgramWeek programWeek) {
-        repository.delete(programWeek);
-    }
-
-    @Override
-    public ProgramWeek findProgramWeekById(long id) {
-        return repository.findProgramWeekById(id);
-    }
+    @Autowired
+    private ProgramWeekRepository repo;
 }
