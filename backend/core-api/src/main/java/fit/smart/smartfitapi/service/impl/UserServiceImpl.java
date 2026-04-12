@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User update(User user) {
-        if (repository.findByEmail(user.getEmail()) != null) {
+        if (repository.findByEmail(user.getEmail()) == null) {
             return null;
         }
         return repository.save(user);
