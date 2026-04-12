@@ -20,6 +20,10 @@ public class ExerciseDto {
 
     private Integer orderInSession;
 
+    private AnalysisResultDto analysisResult;
+
+    private VideoCaptureDto videoCapture;
+
 //    private SessionDto session;
 
 }

@@ -2,6 +2,7 @@ package fit.smart.smartfitapi.ws.converter;
 
 import fit.smart.smartfitapi.entity.Exercise;
 import fit.smart.smartfitapi.ws.dto.ExerciseDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -33,6 +34,12 @@ public class ExerciseConverter {
         if (entity.getOrderInSession() != null) {
             dto.setOrderInSession(entity.getOrderInSession());
         }
+        if(entity.getAnalysisResult() != null){
+            dto.setAnalysisResult(analysisResultConverter.toDto(entity.getAnalysisResult()));
+        }
+        if(entity.getVideoCapture()!=null){
+            dto.setVideoCapture(videoCaptureConverter.toDto(entity.getVideoCapture()));
+        }
         return dto;
     }
 
@@ -59,6 +66,12 @@ public class ExerciseConverter {
         if (dto.getOrderInSession() != null) {
             entity.setOrderInSession(dto.getOrderInSession());
         }
+        if (dto.getAnalysisResult() != null) {
+            entity.setAnalysisResult(analysisResultConverter.toEntity(dto.getAnalysisResult()));
+        }
+        if(entity.getVideoCapture()!=null){
+            entity.setVideoCapture(videoCaptureConverter.toEntity(dto.getVideoCapture()));
+        }
         return entity;
     }
 
@@ -83,5 +96,10 @@ public class ExerciseConverter {
         }
         return entities;
     }
+
+    @Autowired
+    AnalysisResultConverter analysisResultConverter ;
+    @Autowired
+    VideoCaptureConverter videoCaptureConverter ;
 
 }
