@@ -36,9 +36,6 @@ public class WeeklyTemplate {
     @Builder.Default
     private List<SessionTemplate> sessionTemplates = new ArrayList<>();
 
-    public List<SessionTemplate> getSessions() {
-        return sessionTemplates;
-    }
 
     public void applyToWeek(ProgramWeek week) {
         week.setWeeklyTemplate(this);

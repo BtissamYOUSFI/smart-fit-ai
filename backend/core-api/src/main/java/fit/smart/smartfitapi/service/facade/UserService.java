@@ -8,6 +8,6 @@ public interface UserService {
     User findByEmail(String email);
     List<User> findAll();
     User save(User user);
-    void delete(User user);
+    int deleteByEmail(String email);
     User update(User user);
 }

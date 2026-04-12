@@ -4,6 +4,7 @@ import fit.smart.smartfitapi.entity.User;
 import fit.smart.smartfitapi.repository.UserRepository;
 import fit.smart.smartfitapi.security.jwt.JwtUtil;
 import fit.smart.smartfitapi.ws.dto.auth.AuthRequest;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -11,11 +12,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@AllArgsConstructor
 public class AuthService {
-    @Autowired private AuthenticationManager authManager;
-    @Autowired private JwtUtil jwtUtil;
-    @Autowired private UserRepository userRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
+     private final AuthenticationManager authManager;
+     private final JwtUtil jwtUtil;
+     private final UserRepository userRepository;
+     private final PasswordEncoder passwordEncoder;
 
     public String login(AuthRequest request) {
         authManager.authenticate(
