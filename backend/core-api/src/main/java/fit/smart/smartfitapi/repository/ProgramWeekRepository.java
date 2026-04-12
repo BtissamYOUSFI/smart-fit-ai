@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProgramWeekRepository extends JpaRepository<ProgramWeek, Long> {
-    ProgramWeek findProgramWeekById(long id);
+    int deleteProgramWeekById(long id);
 }
