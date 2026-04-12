@@ -16,6 +16,6 @@ public class ExerciseTemplateDto {
 
     private Integer orderInSession;
 
-//    private SessionTemplateDto sessionTemplate;
+    private Long sessionTemplateId;
 
 }

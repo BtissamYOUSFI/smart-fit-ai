@@ -22,7 +22,7 @@ public class SessionDto {
 
     private Double globalScore;
 
-//    private ProgramWeekDto programWeek;
+    private Long programWeekId;
 
     private List<ExerciseDto> exercises;
 

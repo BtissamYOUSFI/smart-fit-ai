@@ -2,6 +2,8 @@ package fit.smart.smartfitapi.ws.facade;
 
 import fit.smart.smartfitapi.entity.Session;
 import fit.smart.smartfitapi.service.facade.SessionService;
+import fit.smart.smartfitapi.ws.converter.SessionConverter;
+import fit.smart.smartfitapi.ws.dto.SessionDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +16,13 @@ import java.util.List;
 public class SessionController {
 
     @GetMapping("")
-    public ResponseEntity<List<Session>> findAll() {
+    public ResponseEntity<List<SessionDto>> findAll() {
         List<Session> sessions = service.findAll();
-        return new ResponseEntity<>(sessions, HttpStatus.OK);
+        return new ResponseEntity<>(converter.toDtos(sessions), HttpStatus.OK);
     }
 
     @GetMapping("id/{id}")
-    public ResponseEntity<Session> findById(@PathVariable Long id) {
+    public ResponseEntity<SessionDto> findById(@PathVariable Long id) {
         Session byId = service.findById(id);
         HttpStatus httpStatus;
         if (byId == null) {
@@ -28,19 +30,19 @@ public class SessionController {
         } else {
             httpStatus = HttpStatus.OK;
         }
-        return new ResponseEntity<>(byId, httpStatus);
+        return new ResponseEntity<>(converter.toDto(byId), httpStatus);
     }
 
     @PostMapping("")
-    public ResponseEntity<Session> save(@RequestBody Session session) {
-        Session saved = service.save(session);
+    public ResponseEntity<SessionDto> save(@RequestBody SessionDto sessionDto) {
+        Session saved = service.save(converter.toEntity(sessionDto));
         HttpStatus httpStatus;
         if (saved == null) {
             httpStatus = HttpStatus.CONFLICT;
         } else {
             httpStatus = HttpStatus.CREATED;
         }
-        return new ResponseEntity<>(saved, httpStatus);
+        return new ResponseEntity<>(converter.toDto(saved), httpStatus);
     }
 
     @DeleteMapping("id/{id}")
@@ -57,4 +59,7 @@ public class SessionController {
 
     @Autowired
     private SessionService service;
+
+    @Autowired
+    private SessionConverter converter;
 }

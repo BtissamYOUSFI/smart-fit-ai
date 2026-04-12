@@ -1,7 +1,6 @@
 package fit.smart.smartfitapi.ws.dto;
 
 
-import fit.smart.smartfitapi.entity.ExerciseTemplate;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,7 +18,7 @@ public class SessionTemplateDto {
 
     private Integer orderInWeek;
 
-    private WeeklyTemplateDto weeklyTemplate;
+    private Long weeklyTemplate;
 
     private List<ExerciseTemplateDto> exerciseTemplates = new ArrayList<>();
 
