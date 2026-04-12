@@ -2,6 +2,7 @@ package fit.smart.smartfitapi.ws.converter;
 
 import fit.smart.smartfitapi.entity.SessionTemplate;
 import fit.smart.smartfitapi.ws.dto.SessionTemplateDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -24,6 +25,11 @@ public class SessionTemplateConverter {
         if (entity.getOrderInWeek() != null) {
             dto.setOrderInWeek(entity.getOrderInWeek());
         }
+        if(entity.getExerciseTemplates() != null && !entity.getExerciseTemplates().isEmpty()){
+            dto.setExerciseTemplates(
+                    exerciseTemplateConverter.toDtos(entity.getExerciseTemplates())
+            );
+        }
         return dto;
     }
 
@@ -40,6 +46,11 @@ public class SessionTemplateConverter {
         }
         if (dto.getOrderInWeek() != null) {
             entity.setOrderInWeek(dto.getOrderInWeek());
+        }
+        if (entity.getExerciseTemplates() != null && !entity.getExerciseTemplates().isEmpty()) {
+            entity.setExerciseTemplates(
+                    exerciseTemplateConverter.toEntities(dto.getExerciseTemplates())
+            );
         }
         return entity;
     }
@@ -65,5 +76,8 @@ public class SessionTemplateConverter {
         }
         return entities;
     }
+
+    @Autowired
+    ExerciseTemplateConverter exerciseTemplateConverter ;
 
 }
