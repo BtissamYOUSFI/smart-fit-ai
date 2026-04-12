@@ -2,18 +2,18 @@ package fit.smart.smartfitapi.ws.converter;
 
 import fit.smart.smartfitapi.entity.User;
 import fit.smart.smartfitapi.ws.dto.UserDto;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@AllArgsConstructor
 public class UserConverter {
 
     public UserDto toDto(User entity) {
-        if (entity == null) {
-            return null;
-        }
+        if (entity == null) return null;
         UserDto dto = new UserDto();
         if (entity.getId() != null) {
             dto.setId(entity.getId());
@@ -30,13 +30,14 @@ public class UserConverter {
         if (entity.getCreatedAt() != null) {
             dto.setCreatedAt(entity.getCreatedAt());
         }
+        if (entity.getPrograms().isEmpty()) {
+            dto.setPrograms(trainingProgramConverter.toDtos(entity.getPrograms()));
+        }
         return dto;
     }
 
     public User toEntity(UserDto dto) {
-        if (dto == null) {
-            return null;
-        }
+        if (dto == null) return null;
         User user = new User();
         if (dto.getId() != null) {
             user.setId(dto.getId());
@@ -53,10 +54,13 @@ public class UserConverter {
         if (dto.getCreatedAt() != null) {
             user.setCreatedAt(dto.getCreatedAt());
         }
+        if (dto.getPrograms() != null) {
+            user.setPrograms(trainingProgramConverter.toEntities(dto.getPrograms()));
+        }
         return user;
     }
 
-    public List<UserDto> toDtoList(List<User> entities) {
+    public List<UserDto> toDtos(List<User> entities) {
         if (entities == null) {
             return null;
         }
@@ -68,7 +72,7 @@ public class UserConverter {
         return dtos;
     }
 
-    public List<User> toEntityList(List<UserDto> dtoList) {
+    public List<User> toEntities(List<UserDto> dtoList) {
         if (dtoList == null) {
             return null;
         }
@@ -79,4 +83,6 @@ public class UserConverter {
         }
         return entities;
     }
+
+    private final TrainingProgramConverter trainingProgramConverter ;
 }
