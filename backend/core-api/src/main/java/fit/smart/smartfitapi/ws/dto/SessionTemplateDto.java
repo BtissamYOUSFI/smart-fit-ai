@@ -1,10 +1,13 @@
 package fit.smart.smartfitapi.ws.dto;
 
 
+import fit.smart.smartfitapi.entity.ExerciseTemplate;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.DayOfWeek;
+import java.util.ArrayList;
+import java.util.List;
 
 @Setter
 @Getter
@@ -16,9 +19,9 @@ public class SessionTemplateDto {
 
     private Integer orderInWeek;
 
-//    private WeeklyTemplateDto weeklyTemplate;
+    private WeeklyTemplateDto weeklyTemplate;
 
-//    private List<ExerciseTemplate> exerciseTemplates = new ArrayList<>();
+    private List<ExerciseTemplateDto> exerciseTemplates = new ArrayList<>();
 
 
 }
