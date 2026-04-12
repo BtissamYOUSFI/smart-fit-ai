@@ -2,6 +2,8 @@ package fit.smart.smartfitapi.ws.facade;
 
 import fit.smart.smartfitapi.entity.ProgramWeek;
 import fit.smart.smartfitapi.service.facade.ProgramWeekService;
+import fit.smart.smartfitapi.ws.converter.ProgramWeekConverter;
+import fit.smart.smartfitapi.ws.dto.ProgramWeekDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +16,13 @@ import java.util.List;
 public class ProgramWeekController {
 
     @GetMapping("")
-    public ResponseEntity<List<ProgramWeek>> findAll() {
+    public ResponseEntity<List<ProgramWeekDto>> findAll() {
         List<ProgramWeek> programWeeks = service.findAll();
-        return new ResponseEntity<>(programWeeks, HttpStatus.OK);
+        return new ResponseEntity<>(converter.toDtos(programWeeks), HttpStatus.OK);
     }
 
     @GetMapping("id/{id}")
-    public ResponseEntity<ProgramWeek> findById(@PathVariable Long id) {
+    public ResponseEntity<ProgramWeekDto> findById(@PathVariable Long id) {
         ProgramWeek byId = service.findById(id);
         HttpStatus httpStatus;
         if (byId == null) {
@@ -28,19 +30,19 @@ public class ProgramWeekController {
         } else {
             httpStatus = HttpStatus.OK;
         }
-        return new ResponseEntity<>(byId, httpStatus);
+        return new ResponseEntity<>(converter.toDto(byId), httpStatus);
     }
 
     @PostMapping("")
-    public ResponseEntity<ProgramWeek> save(@RequestBody ProgramWeek programWeek) {
-        ProgramWeek saved = service.save(programWeek);
+    public ResponseEntity<ProgramWeekDto> save(@RequestBody ProgramWeekDto programWeekDto) {
+        ProgramWeek saved = service.save(converter.toEntity(programWeekDto));
         HttpStatus httpStatus;
         if (saved == null) {
             httpStatus = HttpStatus.CONFLICT;
         } else {
             httpStatus = HttpStatus.CREATED;
         }
-        return new ResponseEntity<>(saved, httpStatus);
+        return new ResponseEntity<>(converter.toDto(saved), httpStatus);
     }
 
     @DeleteMapping("id/{id}")
@@ -57,4 +59,7 @@ public class ProgramWeekController {
 
     @Autowired
     private ProgramWeekService service;
+
+    @Autowired
+    private ProgramWeekConverter converter;
 }

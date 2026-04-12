@@ -24,6 +24,6 @@ public class ExerciseDto {
 
     private VideoCaptureDto videoCapture;
 
-//    private SessionDto session;
+    private Long sessionId;
 
 }

@@ -2,6 +2,8 @@ package fit.smart.smartfitapi.ws.facade;
 
 import fit.smart.smartfitapi.entity.ExerciseTemplate;
 import fit.smart.smartfitapi.service.facade.ExerciseTemplateService;
+import fit.smart.smartfitapi.ws.converter.ExerciseTemplateConverter;
+import fit.smart.smartfitapi.ws.dto.ExerciseTemplateDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +16,13 @@ import java.util.List;
 public class ExerciseTemplateController {
 
     @GetMapping("")
-    public ResponseEntity<List<ExerciseTemplate>> findAll() {
+    public ResponseEntity<List<ExerciseTemplateDto>> findAll() {
         List<ExerciseTemplate> exerciseTemplates = service.findAll();
-        return new ResponseEntity<>(exerciseTemplates, HttpStatus.OK);
+        return new ResponseEntity<>(converter.toDtos(exerciseTemplates), HttpStatus.OK);
     }
 
     @GetMapping("id/{id}")
-    public ResponseEntity<ExerciseTemplate> findById(@PathVariable Long id) {
+    public ResponseEntity<ExerciseTemplateDto> findById(@PathVariable Long id) {
         ExerciseTemplate byId = service.findById(id);
         HttpStatus httpStatus;
         if (byId == null) {
@@ -28,19 +30,19 @@ public class ExerciseTemplateController {
         } else {
             httpStatus = HttpStatus.OK;
         }
-        return new ResponseEntity<>(byId, httpStatus);
+        return new ResponseEntity<>(converter.toDto(byId), httpStatus);
     }
 
     @PostMapping("")
-    public ResponseEntity<ExerciseTemplate> save(@RequestBody ExerciseTemplate exerciseTemplate) {
-        ExerciseTemplate saved = service.save(exerciseTemplate);
+    public ResponseEntity<ExerciseTemplateDto> save(@RequestBody ExerciseTemplateDto exerciseTemplateDto) {
+        ExerciseTemplate saved = service.save(converter.toEntity(exerciseTemplateDto));
         HttpStatus httpStatus;
         if (saved == null) {
             httpStatus = HttpStatus.CONFLICT;
         } else {
             httpStatus = HttpStatus.CREATED;
         }
-        return new ResponseEntity<>(saved, httpStatus);
+        return new ResponseEntity<>(converter.toDto(saved), httpStatus);
     }
 
     @DeleteMapping("id/{id}")
@@ -57,4 +59,7 @@ public class ExerciseTemplateController {
 
     @Autowired
     private ExerciseTemplateService service;
+
+    @Autowired
+    private ExerciseTemplateConverter converter;
 }
