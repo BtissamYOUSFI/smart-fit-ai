@@ -1,0 +1,3 @@
+smart-fit-key-pairs.pem
+*.pem
+infrastructure/docker/.env
