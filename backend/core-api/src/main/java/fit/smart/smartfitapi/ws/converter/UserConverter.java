@@ -30,9 +30,9 @@ public class UserConverter {
         if (entity.getCreatedAt() != null) {
             dto.setCreatedAt(entity.getCreatedAt());
         }
-        if (entity.getPrograms().isEmpty()) {
-            dto.setPrograms(trainingProgramConverter.toDtos(entity.getPrograms()));
-        }
+//        if (entity.getPrograms().isEmpty()) {
+//            dto.setPrograms(trainingProgramConverter.toDtos(entity.getPrograms()));
+//        }
         return dto;
     }
 
