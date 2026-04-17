@@ -3,39 +3,51 @@ services:
     image: mysql:8.4
     container_name: smartfit-mysql
     restart: always
-    env_file: .env
+    env_file: [.env]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
+    # No ports exposed to public; only core-api needs to talk to it internally
     networks:
       - backend_net
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
+      timeout: 5s
       retries: 5
 
   core-api:
     image: soufianebenseddiq/smartfit-core-api:latest
     container_name: smartfit-core-api
     restart: always
-    env_file:
-      - .env
+    env_file: [ .env ]
+    environment:
+      # Added: connectTimeout and socketTimeout to give it more breathing room
+      SPRING_DATASOURCE_URL: jdbc:mysql://smartfit-mysql:3306/${MYSQL_DATABASE}?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true&connectTimeout=10000&socketTimeout=60000
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION: ${JWT_EXPIRATION}
+    # Force a 15-second sleep before starting the Java app to ensure MySQL is fully ready
+    entrypoint: [ "/bin/sh", "-c", "sleep 15 && java -jar app.jar" ]
+    ports:
+      - "8080:8080"
     networks:
       - backend_net
       - frontend_net
+
 
   ai-api:
     image: soufianebenseddiq/smartfit-ai-api:latest
     container_name: smartfit-ai-api
     restart: always
+    ports:
+      - "8000:8000" # ALB will route /ai traffic here
     networks:
       - frontend_net
 
@@ -43,22 +55,8 @@ services:
     image: soufianebenseddiq/smartfit-frontend:latest
     container_name: smartfit-frontend
     restart: always
-    networks:
-      - frontend_net
-
-  nginx:
-    image: nginx:alpine
-    container_name: smartfit-nginx
-    restart: always
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - core-api
-      - ai-api
-      - frontend
+      - "80:80"     # ALB will route default traffic here
     networks:
       - frontend_net
 
@@ -66,16 +64,99 @@ services:
     image: prom/prometheus
     container_name: smartfit-prometheus
     restart: always
+    ports:
+      - "9090:9090"
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - frontend_net
 
 networks:
   frontend_net:
-    driver: bridge
   backend_net:
-    driver: bridge
 
 volumes:
   mysql_data:
+
+
+#services:
+#  mysql:
+#    image: mysql:8.4
+#    container_name: smartfit-mysql
+#    restart: always
+#    env_file: .env
+#    volumes:
+#      - mysql_data:/var/lib/mysql
+#    networks:
+#      - backend_net
+#    healthcheck:
+#      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+#      interval: 10s
+#      retries: 5
+#
+#  core-api:
+#    image: soufianebenseddiq/smartfit-core-api:latest
+#    container_name: smartfit-core-api
+#    restart: always
+#    env_file:
+#      - .env
+#    depends_on:
+#      mysql:
+#        condition: service_healthy
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+#      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+#      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+#      JWT_SECRET: ${JWT_SECRET}
+#      JWT_EXPIRATION: ${JWT_EXPIRATION}
+#    networks:
+#      - backend_net
+#      - frontend_net
+#
+#  ai-api:
+#    image: soufianebenseddiq/smartfit-ai-api:latest
+#    container_name: smartfit-ai-api
+#    restart: always
+#    networks:
+#      - frontend_net
+#
+#  frontend:
+#    image: soufianebenseddiq/smartfit-frontend:latest
+#    container_name: smartfit-frontend
+#    restart: always
+#    networks:
+#      - frontend_net
+#
+#  nginx:
+#    image: nginx:alpine
+#    container_name: smartfit-nginx
+#    restart: always
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#    volumes:
+#      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+#    depends_on:
+#      - core-api
+#      - ai-api
+#      - frontend
+#    networks:
+#      - frontend_net
+#
+#  prometheus:
+#    image: prom/prometheus
+#    container_name: smartfit-prometheus
+#    restart: always
+#    volumes:
+#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#    networks:
+#      - frontend_net
+#
+#networks:
+#  frontend_net:
+#    driver: bridge
+#  backend_net:
+#    driver: bridge
+#
+#volumes:
+#  mysql_data:
