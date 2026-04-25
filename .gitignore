@@ -1,6 +1,6 @@
 smart-fit-key-pairs.pem
 *.pem
-infrastructure/docker/.env. i d e a /
+infrastructure/docker/.env.idea/
 # Secrets & keys
 *.pem
 *.env
@@ -37,3 +37,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Allow trained model files
+!backend/ai-api/app/models/training-result/best.pt
+!backend/ai-api/app/models/training-result/lstm_best.h5
+!backend/ai-api/app/models/training-result/lstm_best.tflite
