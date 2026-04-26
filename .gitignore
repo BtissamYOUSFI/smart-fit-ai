@@ -42,3 +42,6 @@ Thumbs.db
 !backend/ai-api/app/models/training-result/best.pt
 !backend/ai-api/app/models/training-result/lstm_best.h5
 !backend/ai-api/app/models/training-result/lstm_best.tflite
+**/__pycache__/
+*.pyc
+.idea/
