@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
 
@@ -75,10 +76,28 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
     </ParallaxScrollView>
+=======
+import {Button, StyleSheet, Text, View} from 'react-native';
+import {useState} from "react";
+import LoginPage from "@/app/(tabs)/pages/auth/login";
+
+
+
+export default function HomeScreen() {
+  const [count, setCount]= useState(0);
+  function increment() {
+    setCount(count + 1);
+  }
+  return (
+      <View>
+        <LoginPage></LoginPage>
+      </View>
+>>>>>>> 06faa67e852c79b85f3399da3da90edc86170832
   );
 }
 
 const styles = StyleSheet.create({
+<<<<<<< HEAD
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -95,4 +114,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
   },
+=======
+
+>>>>>>> 06faa67e852c79b85f3399da3da90edc86170832
 });
