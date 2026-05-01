@@ -1,0 +1,224 @@
+---
+config:
+  theme: neo-dark
+  look: neo
+  layout: dagre
+---
+classDiagram
+direction TB
+	namespace core_api {
+        class User {
+	        -Long id
+	        -String name
+	        -String email
+	        -String passwordHash
+	        -LocalDateTime createdAt
+	        +getPrograms() List~TrainingProgram~
+        }
+
+        class TrainingProgram {
+	        -Long id
+	        -String title
+	        -LocalDate startDate
+	        -LocalDate endDate
+	        +getGlobalScore() Double
+	        +getCompletionRate() Double
+        }
+
+        class WeeklyTemplate {
+	        -Long id
+	        -String label
+	        -RepeatMode repeatMode
+	        -Integer weekOfMonth
+	        +getSessions() List~SessionTemplate~
+	        +applyToWeek(week ProgramWeek) void
+        }
+
+        class SessionTemplate {
+	        -Long id
+	        -DayOfWeek dayOfWeek
+	        -Integer orderInWeek
+	        +getExerciseTemplates() List~ExerciseTemplate~
+        }
+
+        class ExerciseTemplate {
+	        -Long id
+	        -ExerciseType exerciseType
+	        -Integer plannedReps
+	        -Integer orderInSession
+        }
+
+        class ProgramWeek {
+	        -Long id
+	        -Integer weekNumber
+	        -LocalDate startDate
+	        -Boolean isCustomized
+	        +getSessions() List~Session~
+	        +resetToTemplate() void
+        }
+
+        class Session {
+	        -Long id
+	        -DayOfWeek dayOfWeek
+	        -LocalDate scheduledDate
+	        -SessionStatus status
+	        -Double globalScore
+	        +calculateGlobalScore() Double
+	        +isCompleted() Boolean
+        }
+
+        class Exercise {
+	        -Long id
+	        -ExerciseType exerciseType
+	        -Integer plannedReps
+	        -Integer performedReps
+	        -Double score
+	        -Integer orderInSession
+	        +isAnalyzed() Boolean
+        }
+
+        class VideoCapture {
+	        -Long id
+	        -CaptureMode sourceMode
+	        -String filePath
+	        -Integer durationSeconds
+	        -LocalDateTime uploadedAt
+	        +isReady() Boolean
+        }
+
+        class AnalysisResult {
+	        -Long id
+	        -Double avgKneeAngle
+	        -Double avgHipAngle
+	        -Double avgBackAngle
+	        -Double stabilityScore
+	        -Double amplitudeScore
+	        -List~String~ detectedErrors
+	        -String feedback
+	        -LocalDateTime analyzedAt
+	        +getGlobalScore() Double
+        }
+
+        class RepeatMode {
+	        ALL_WEEKS
+	        BY_WEEK_OF_MONTH
+	        INDEPENDENT
+        }
+
+        class ExerciseType {
+	        SQUAT
+	        PUSHUP
+	        LUNGE
+	        PLANK
+        }
+
+        class SessionStatus {
+	        PLANNED
+	        IN_PROGRESS
+	        COMPLETED
+        }
+
+        class CaptureMode {
+	        UPLOAD
+	        LIVE_CAMERA
+        }
+
+	}
+	namespace ai_api {
+        class SmartFitAIAPI {
+	        +lifespan(app) asynccontextmanager
+        }
+
+        class HealthRouter {
+	        +health(request) dict
+        }
+
+        class UploadRouter {
+	        +analyze_video(request, file) dict
+        }
+
+        class WebSocketRouter {
+	        +websocket_analyze(ws) void
+        }
+
+        class AnalysisPipeline {
+	        -YOLODetector yolo
+	        -PoseExtractor mp
+	        -LSTMClassifier lstm
+	        +analyze_frame(frame) dict
+	        +analyze_video(video_path) dict
+        }
+
+        class YOLODetector {
+	        -YOLO model
+	        +detect(frame) dict
+        }
+
+        class PoseExtractor {
+	        -pose
+	        +extract(frame) PoseLandmarks
+	        +close() void
+        }
+
+        class LSTMClassifier {
+	        -Interpreter interpreter
+	        -deque buffer
+	        +add_frame(landmarks) str
+	        +reset() void
+        }
+
+        class PoseLandmarks {
+	        +List~Landmark3D~ landmarks
+	        +get(idx) Landmark3D
+	        +as_array(idx) ndarray
+        }
+
+        class Landmark3D {
+	        +float x
+	        +float y
+	        +float z
+	        +float visibility
+        }
+
+        class AngleCalculator {
+	        +compute_angle(a, b, c) float
+	        +get_exercise_angles(pose, exercise) dict
+	        +evaluate_angles(angles, exercise) List~dict~
+	        +compute_score(errors, total_joints) float
+        }
+
+	}
+
+	<<enumeration>> RepeatMode
+	<<enumeration>> ExerciseType
+	<<enumeration>> SessionStatus
+	<<enumeration>> CaptureMode
+
+    User "1" --> "*" TrainingProgram : owns
+    TrainingProgram "1" --> "*" WeeklyTemplate : defines
+    WeeklyTemplate "1" --> "*" SessionTemplate : contains
+    WeeklyTemplate --> RepeatMode : uses
+    SessionTemplate "1" --> "*" ExerciseTemplate : contains
+    ExerciseTemplate --> ExerciseType : uses
+    ProgramWeek "1" --> "*" Session : contains
+    ProgramWeek "*" --> "0..1" WeeklyTemplate : derived from
+    Session "1" --> "*" Exercise : contains
+    Session --> SessionStatus : uses
+    Exercise "1" --> "0..1" VideoCapture : captured via
+    Exercise "1" --> "0..1" AnalysisResult : has
+    Exercise --> ExerciseType : uses
+    VideoCapture --> CaptureMode : uses
+    SmartFitAIAPI *-- AnalysisPipeline : loads in lifespan
+    SmartFitAIAPI --> HealthRouter : includes
+    SmartFitAIAPI --> UploadRouter : includes
+    SmartFitAIAPI --> WebSocketRouter : includes
+    HealthRouter ..> AnalysisPipeline : checks pipeline_loaded
+    UploadRouter ..> AnalysisPipeline : calls analyze_video()
+    WebSocketRouter ..> AnalysisPipeline : calls analyze_frame()
+    AnalysisPipeline *-- YOLODetector : detects exercise
+    AnalysisPipeline *-- PoseExtractor : extracts landmarks
+    AnalysisPipeline *-- LSTMClassifier : disambiguates pushup/plank
+    AnalysisPipeline ..> AngleCalculator : computes angles and score
+    PoseExtractor ..> PoseLandmarks : returns
+    PoseLandmarks *-- Landmark3D : contains
+    TrainingProgram -- ProgramWeek
