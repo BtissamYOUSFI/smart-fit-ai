@@ -1,152 +1,108 @@
-// app/auth/login.tsx
 import { useState } from "react";
-import {
-    View, Text, TextInput, TouchableOpacity,
-    StyleSheet, SafeAreaView, KeyboardAvoidingView,
-    Platform, Dimensions,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-// import { login } from "@/services/auth.service";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { Link, useRouter } from "expo-router";
 
-const { width } = Dimensions.get("window");
-
-export default function LoginPage() {
+export default function Login() {
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPw, setShowPw] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async () => {
+    const onSubmit = async () => {
+        const er: Record<string, string> = {};
+        if (!/^\S+@\S+\.\S+$/.test(email)) er.email = "Enter a valid email";
+        if (password.length < 6) er.password = "At least 6 characters";
+        setErrors(er);
+        if (Object.keys(er).length) return;
+        setLoading(true);
         try {
-            setLoading(true);
-            // const res = await login({ email, password });
-            // stocker le token + naviguer
-            router.replace("/(tabs)");
-        } catch (e) {
-            alert("Identifiants incorrects");
+            // await login(email, password);
+            router.replace("/(tabs)/pages/dashboard");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <SafeAreaView style={s.safe}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-                style={s.flex}
-            >
-                {/* Badge */}
-                <View style={s.badge}>
-                    <View style={s.dot} />
-                    <Text style={s.badgeText}>SMART FIT AI</Text>
-                </View>
+        <View style={styles.container}>
+            <View style={styles.card}>
+                <Text style={styles.title}>Welcome back</Text>
+                <Text style={styles.subtitle}>Login to continue your training.</Text>
 
-                {/* Titre */}
-                <Text style={s.title}>BON{"\n"}
-                    <Text style={s.titleAccent}>RETOUR</Text>
-                </Text>
-                <Text style={s.subtitle}>
-                    Continuez votre progression.{"\n"}Votre corps vous remerciera.
-                </Text>
+                <View style={styles.form}>
+                    {/* Email */}
+                    <View>
+                        <Text style={styles.label}>Email</Text>
+                        <TextInput
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="you@example.com"
+                            placeholderTextColor="#64748b"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            style={styles.input}
+                        />
+                        {errors.email && <Text style={styles.error}>{errors.email}</Text>}
+                    </View>
 
-                {/* Stats */}
-                <View style={s.statRow}>
-                    {[
-                        { n: "12k", l: "Utilisateurs" },
-                        { n: "98%", l: "Satisfaction" },
-                        { n: "4.9★", l: "Note" },
-                    ].map((stat) => (
-                        <View key={stat.l} style={s.stat}>
-                            <Text style={s.statN}>{stat.n}</Text>
-                            <Text style={s.statL}>{stat.l}</Text>
+                    {/* Password */}
+                    <View>
+                        <View style={styles.passwordHeader}>
+                            <Text style={styles.label}>Password</Text>
+                            <TouchableOpacity>
+                                <Text style={styles.forgotText}>Forgot password?</Text>
+                            </TouchableOpacity>
                         </View>
-                    ))}
+                        <View>
+                            <TextInput
+                                value={password}
+                                onChangeText={setPassword}
+                                placeholder="••••••••"
+                                placeholderTextColor="#64748b"
+                                secureTextEntry={!showPw}
+                                style={[styles.input, { paddingRight: 44 }]}
+                            />
+                            <TouchableOpacity onPress={() => setShowPw((s) => !s)} style={styles.eyeButton}>
+                                <Text style={styles.eyeText}>{showPw ? "🙈" : "👁️"}</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {errors.password && <Text style={styles.error}>{errors.password}</Text>}
+                    </View>
+
+                    {/* Submit */}
+                    <TouchableOpacity onPress={onSubmit} disabled={loading} style={[styles.button, loading && { opacity: 0.7 }]}>
+                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
+                    </TouchableOpacity>
                 </View>
 
-                {/* Champs */}
-                <Text style={s.label}>EMAIL</Text>
-                <View style={s.field}>
-                    <TextInput
-                        style={s.input}
-                        placeholder="votre@email.com"
-                        placeholderTextColor="#444"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                    />
-                </View>
-
-                <Text style={s.label}>Password</Text>
-                <View style={s.field}>
-                    <TextInput
-                        style={s.input}
-                        placeholder="••••••••"
-                        placeholderTextColor="#444"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                    />
-                </View>
-
-                <Text style={s.forgot}>Mot de passe oublié ?</Text>
-
-                {/* Bouton */}
-                <TouchableOpacity onPress={handleLogin} disabled={loading}>
-                    <LinearGradient
-                        colors={["#1d9e75", "#0f6e56"]}
-                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                        style={s.btn}
-                    >
-                        <Text style={s.btnText}>
-                            {loading ? "CONNEXION..." : "SE CONNECTER"}
-                        </Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Inscription */}
-                <Text style={s.register}>
-                    Pas encore de compte ?{" "}
-                    <Text style={s.registerLink} onPress={() => router.push("/pages/auth/register")}>
-                        Créer un compte
-                    </Text>
+                <Text style={styles.footerText}>
+                    No account yet?{" "}
+                    <Link href="/(tabs)/pages/auth/register" style={styles.linkText}>
+                        Register
+                    </Link>
                 </Text>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+            </View>
+        </View>
     );
 }
 
-const s = StyleSheet.create({
-    safe:     { flex: 1, backgroundColor: "#0c0c0f" },
-    flex:        { flex: 1, paddingHorizontal: 28, paddingTop: 40 },
-    badge:       { flexDirection: "row", alignItems: "center", gap: 6,
-        backgroundColor: "rgba(29,158,117,0.12)",
-        borderWidth: 0.5, borderColor: "rgba(29,158,117,0.3)",
-        borderRadius: 20, paddingVertical: 5, paddingHorizontal: 12,
-        alignSelf: "flex-start", marginBottom: 28 },
-    dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: "#1d9e75" },
-    badgeText:   { fontSize: 11, color: "#1d9e75", fontWeight: "500", letterSpacing: 0.5 },
-    title:       { fontSize: 52, color: "#f0ede8", lineHeight: 50,
-        fontFamily: "BebasNeue_400Regular", marginBottom: 6 },
-    titleAccent: { color: "#1d9e75" },
-    subtitle:    { fontSize: 13, color: "#888780", marginBottom: 28, lineHeight: 20 },
-    statRow:     { flexDirection: "row", gap: 10, marginBottom: 32 },
-    stat:        { flex: 1, backgroundColor: "#16161d",
-        borderWidth: 0.5, borderColor: "#1e1e2a",
-        borderRadius: 12, padding: 10 },
-    statN:       { fontSize: 22, color: "#f0ede8", fontFamily: "BebasNeue_400Regular" },
-    statL:       { fontSize: 10, color: "#5f5e5a", marginTop: 2 },
-    label:       { fontSize: 11, color: "#5f5e5a", letterSpacing: 0.8, marginBottom: 8 },
-    field:       { backgroundColor: "#16161d", borderWidth: 0.5, borderColor: "#2a2a35",
-        borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14,
-        marginBottom: 14 },
-    input:       { color: "#d3d1c7", fontSize: 14 },
-    forgot:      { color: "#534ab7", fontSize: 12, textAlign: "right",
-        marginTop: -6, marginBottom: 24 },
-    btn:         { borderRadius: 16, paddingVertical: 16, alignItems: "center",
-        marginBottom: 24 },
-    btnText:     { color: "#fff", fontSize: 16, fontFamily: "BebasNeue_400Regular",
-        letterSpacing: 2 },
-    register:    { textAlign: "center", fontSize: 12, color: "#5f5e5a" },
-    registerLink:{ color: "#1d9e75", fontWeight: "500" },
+const styles = StyleSheet.create({
+    container: { flex: 1, justifyContent: "center", backgroundColor: "#0f172a", padding: 20 },
+    card: { backgroundColor: "#1e293b", borderRadius: 16, padding: 24 },
+    title: { fontSize: 22, fontWeight: "800", color: "#f1f5f9" },
+    subtitle: { marginTop: 4, fontSize: 13, color: "#94a3b8" },
+    form: { marginTop: 24, gap: 16 },
+    label: { fontSize: 12, fontWeight: "600", color: "#f1f5f9", marginBottom: 6 },
+    input: { height: 48, borderWidth: 1, borderColor: "#334155", borderRadius: 8, paddingHorizontal: 12, fontSize: 14, color: "#f1f5f9", backgroundColor: "#0f172a" },
+    error: { marginTop: 4, fontSize: 12, color: "#ef4444" },
+    passwordHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+    forgotText: { fontSize: 12, fontWeight: "600", color: "#3b82f6" },
+    eyeButton: { position: "absolute", right: 10, top: 12 },
+    eyeText: { fontSize: 16 },
+    button: { height: 52, backgroundColor: "#3b82f6", borderRadius: 8, justifyContent: "center", alignItems: "center", marginTop: 8 },
+    buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+    footerText: { marginTop: 24, textAlign: "center", fontSize: 13, color: "#94a3b8" },
+    linkText: { fontWeight: "600", color: "#3b82f6" },
 });
