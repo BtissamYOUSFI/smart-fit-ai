@@ -3,8 +3,12 @@ name: Build
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'backend/ai-api/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'backend/ai-api/**'
 
 jobs:
 
@@ -37,13 +41,6 @@ jobs:
           context: ./backend/core-api
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/smartfit-core-api:latest
-
-      - name: Build and push ai-api image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend/ai-api
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/smartfit-ai-api:latest
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5

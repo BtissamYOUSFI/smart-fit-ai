@@ -23,7 +23,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "infrastructure/**" # Added double asterisk to get all subfolders
+          source: "infrastructure/**"
           target: "/home/ec2-user/smart-fit-ai/"
 
       - name: Deploy on EC2
@@ -35,7 +35,6 @@ jobs:
           script: |
             cd /home/ec2-user/smart-fit-ai/infrastructure/docker
 
-            # Write .env from GitHub secrets
             cat > .env << EOF
             MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
             MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
@@ -43,15 +42,10 @@ jobs:
             MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}
+            AI_API_URL=${{ secrets.AI_API_URL }}
             EOF
 
-            # Replace placeholder with real Docker username
-            sed -i 's|soufianebenseddiq|${{ secrets.DOCKER_USERNAME }}|g' docker-compose.prod.yml
-
-            # Pull latest images and restart
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d
-
-            # Clean up old images
             docker image prune -f
