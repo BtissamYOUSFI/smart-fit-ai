@@ -26,4 +26,20 @@ export const tokenStorage = {
             await SecureStore.deleteItemAsync(TOKEN_KEY);
         }
     },
+    saveEmail: async (email: string) => {
+        const key = "user_email";
+        if (Platform.OS === "web") {
+            await AsyncStorage.setItem(key, email);
+        } else {
+            await SecureStore.setItemAsync(key, email);
+        }
+    },
+    getEmail: async (): Promise<string | null> => {
+        const key = "user_email";
+        if (Platform.OS === "web") {
+            return await AsyncStorage.getItem(key);
+        } else {
+            return await SecureStore.getItemAsync(key);
+        }
+    },
 };
