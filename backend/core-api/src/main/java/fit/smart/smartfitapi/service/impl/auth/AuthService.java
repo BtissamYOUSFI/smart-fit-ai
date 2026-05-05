@@ -1,12 +1,14 @@
 package fit.smart.smartfitapi.service.impl.auth;
 
 import fit.smart.smartfitapi.entity.User;
+import fit.smart.smartfitapi.exception.UserAlreadyExistsException;
 import fit.smart.smartfitapi.repository.UserRepository;
 import fit.smart.smartfitapi.security.jwt.JwtUtil;
 import fit.smart.smartfitapi.ws.dto.auth.AuthRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,10 @@ public class AuthService {
      private final PasswordEncoder passwordEncoder;
 
     public String login(AuthRequest request) {
+//        User user = userRepository.findByEmail(request.getEmail());
+//        if (user == null) {
+//            throw new BadCredentialsException("Invalid email or password");
+//        }
         authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -32,7 +38,7 @@ public class AuthService {
 
     public String register(User user) {
         if (userRepository.findByEmail(user.getEmail()) != null) {
-            throw new RuntimeException("Email already exists");
+            throw new UserAlreadyExistsException("Email already exists");
         }
         user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);

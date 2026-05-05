@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { useRouter } from "expo-router";
-import { LoadingDots } from "../../../../components/bouncingDots"
+import { LoadingDots } from "../../components/bouncingDots"
 
 export default function Splash() {
     const router = useRouter();
@@ -9,7 +9,7 @@ export default function Splash() {
     useEffect(() => {
         const t = setTimeout(() => {
             // Remplace par la logique auth : si token → dashboard, sinon → onboarding
-            router.replace("/(tabs)/pages/auth/onboarding" as any);
+            router.replace("/auth/onboarding" as any);
         }, 2000);
         return () => clearTimeout(t);
     }, []);

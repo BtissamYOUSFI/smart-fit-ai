@@ -45,7 +45,7 @@ export default function Onboarding() {
             {/* Skip */}
             <View style={styles.skipRow}>
                 {index < slides.length - 1 ? (
-                    <TouchableOpacity onPress={() => router.replace("/(tabs)/pages/auth/login" as any)}>
+                    <TouchableOpacity onPress={() => router.replace("/auth/login" as any)}>
                         <Text style={styles.skipText}>Skip</Text>
                     </TouchableOpacity>
                 ) : (
@@ -87,13 +87,13 @@ export default function Onboarding() {
                     <>
                         <TouchableOpacity
                             style={styles.primaryButton}
-                            onPress={() => router.replace("/(tabs)/pages/auth/register" as any)}
+                            onPress={() => router.replace("/auth/register" as any)}
                         >
                             <Text style={styles.primaryButtonText}>Create account</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.outlineButton}
-                            onPress={() => router.replace("/(tabs)/pages/auth/login" as any)}
+                            onPress={() => router.replace("/auth/login" as any)}
                         >
                             <Text style={styles.outlineButtonText}>I already have an account</Text>
                         </TouchableOpacity>

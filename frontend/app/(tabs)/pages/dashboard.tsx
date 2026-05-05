@@ -111,7 +111,7 @@ export default function Dashboard() {
                                 title="No session planned"
                                 description="Plan a session for this day to start training."
                                 actionLabel="Plan a session"
-                                onAction={() => router.push("/(tabs)/pages/programsList")}
+                                onAction={() => router.push("/programs/index")}
                             />
                         </View>
                     )}
