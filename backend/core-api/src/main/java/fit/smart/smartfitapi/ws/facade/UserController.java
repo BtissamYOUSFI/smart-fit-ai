@@ -7,6 +7,8 @@ import fit.smart.smartfitapi.ws.dto.UserDto;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -59,6 +61,20 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         return ResponseEntity.ok(converter.toDto(updated));
+    }
+
+    @GetMapping("me")
+    public ResponseEntity<UserDto> me(Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String email = userDetails.getUsername();
+
+        User user = service.findByEmail(email); // inject repo here or via service
+
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(converter.toDto(user));
     }
 
     private final UserService service;
