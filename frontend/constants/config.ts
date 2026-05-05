@@ -12,6 +12,6 @@
 import { Platform } from "react-native";
 
 
-const PUBLIC_IP = "localhost";
+const PUBLIC_IP = "54.221.13.194";
 
 export const API_URL = `http://${PUBLIC_IP}:8080/api`;
