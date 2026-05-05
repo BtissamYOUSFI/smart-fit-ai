@@ -18,7 +18,7 @@ export default function ProgramsList() {
                 <Text style={styles.title}>My Programs</Text>
                 <TouchableOpacity
                     style={styles.addButton}
-                    onPress={() => router.push("/(tabs)/pages/createProgram" as any)}
+                    onPress={() => router.push("/programs/create" as any)}
                 >
                     <Text style={styles.addButtonText}>+</Text>
                 </TouchableOpacity>
@@ -31,7 +31,7 @@ export default function ProgramsList() {
                         <Text style={styles.emptyDesc}>Create your first program to get started.</Text>
                         <TouchableOpacity
                             style={styles.outlineButton}
-                            onPress={() => router.push("/(tabs)/pages/createProgram" as any)}
+                            onPress={() => router.push("/programs/create" as any)}
                         >
                             <Text style={styles.outlineButtonText}>Create your first program</Text>
                         </TouchableOpacity>
@@ -43,7 +43,14 @@ export default function ProgramsList() {
                             <TouchableOpacity
                                 key={p.id}
                                 style={styles.card}
-                                onPress={() => router.push(`/(tabs)/pages/programDetail?id=${p.id}` as any)}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: "/programs/[id]",
+                                        params: {
+                                            id: p.id,
+                                        },
+                                    })
+                                }
                             >
                                 <View style={styles.cardTop}>
                                     <View style={{ flex: 1 }}>

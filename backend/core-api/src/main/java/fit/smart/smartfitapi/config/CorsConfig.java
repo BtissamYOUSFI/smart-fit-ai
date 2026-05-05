@@ -15,8 +15,14 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 //        we'll place here our frontend, localhost, fast api service and deployment server's ip address
         config.setAllowedOrigins(List.of(
+                "http://localhost:8081",
                 "http://localhost:4200",
-                "http://3.236.208.61:4200"
+                "http://3.236.208.61:4200",
+                "http://10.0.2.2:8080",
+                "http://192.168.137.138:8080",
+                "http://54.221.13.194",        // IP Frontend
+                "http://54.221.13.194:8080"
+
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

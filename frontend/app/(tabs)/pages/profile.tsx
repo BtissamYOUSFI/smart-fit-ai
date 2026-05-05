@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-
+import { useAuth } from "@/app/context/AuthContext";
 export default function Profile() {
     const router = useRouter();
     const [push, setPush] = useState(true);
@@ -12,8 +12,17 @@ export default function Profile() {
     const initials = (name: string) =>
         name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-    const handleLogout = () => {
-        router.replace("/(tabs)/pages/auth/onboarding" as any);
+    // const handleLogout = () => {
+    //     router.replace("/auth/onboarding" as any);
+    // };
+
+    const { logout } = useAuth();
+
+    const handleLogout = async () => {
+        console.log("before")
+        await logout();
+        router.replace("/auth/splash");
+        console.log("after")
     };
 
     return (

@@ -140,7 +140,16 @@ export default function ProgramDetail() {
                                                         </View>
                                                     </View>
                                                     <TouchableOpacity
-                                                        onPress={() => router.push(`/(tabs)/pages/sessionDetail?id=${program.id}&weekId=${w.id}&sessionId=${s.id}` as any)}
+                                                        onPress={() =>
+                                                            router.push({
+                                                                pathname: "/sessions/[id]",
+                                                                params: {
+                                                                    id: s.id,
+                                                                    programId: program.id,
+                                                                    weekId: w.id,
+                                                                },
+                                                            })
+                                                        }
                                                     >
                                                         <Text style={{ color: "#3b82f6", fontSize: 13, fontWeight: "600" }}>Open</Text>
                                                     </TouchableOpacity>
@@ -149,7 +158,15 @@ export default function ProgramDetail() {
                                             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
                                                 <TouchableOpacity
                                                     style={styles.outlineButton}
-                                                    onPress={() => router.push(`/(tabs)/pages/sessionEditor?id=${program.id}&week=${w.id}` as any)}
+                                                    onPress={() =>
+                                                        router.push({
+                                                            pathname: "/sessions/editor",
+                                                            params: {
+                                                                programId: program.id,
+                                                                weekId: w.id,
+                                                            },
+                                                        })
+                                                    }
                                                 >
                                                     <Text style={styles.outlineButtonText}>Edit</Text>
                                                 </TouchableOpacity>
