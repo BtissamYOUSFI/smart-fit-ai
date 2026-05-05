@@ -1,5 +1,5 @@
-// // export const API_URL = "http://localhost:8080/api";
-//
+// export const API_URL = "http://localhost:8080/api";
+
 // import { Platform } from "react-native";
 //
 // const LOCAL_IP = "192.168.1.19";
@@ -9,7 +9,7 @@
 //         ? "http://10.0.2.2:8080/api"
 //         : `http://${LOCAL_IP}:8080/api`;
 
-import { Platform } from "react-native";
+
 
 
 const PUBLIC_IP = "54.221.13.194";
