@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { tokenStorage } from "@/utils/tokenStorage";
 import { loginApi, registerApi } from "@/app/shared/service/authApi";
+import { setAuthErrorHandler } from "@/app/shared/service/api";
 
 type AuthContextType = {
     isAuthenticated: boolean;
@@ -17,13 +18,16 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading]             = useState(true);
+    const [loading, setLoading]                 = useState(false);
+    const [error, setError]                     = useState<string | null>(null);
     const clearError = () => setError(null);
 
     useEffect(() => {
-        const checkToken = async () => {
+        setAuthErrorHandler(() => {
+            setIsAuthenticated(false);
+        });
+        (async () => {
             try {
                 const token = await tokenStorage.get();
                 setIsAuthenticated(!!token);
@@ -32,8 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } finally {
                 setIsLoading(false);
             }
-        };
-        checkToken();
+        })();
     }, []);
 
     const login = async (email: string, password: string) => {
@@ -42,9 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const res = await loginApi({ email, password });
             await tokenStorage.save(res.token);
-            setIsAuthenticated(true); // ← all consumers see this update
+            await tokenStorage.saveEmail(res.email);
+            setIsAuthenticated(true);
         } catch (e: any) {
-            setError(e.response?.data?.message ?? e.message ?? "Erreur inconnue");
+            setError(e.response?.data?.message ?? e.message ?? "Login failed.");
         } finally {
             setLoading(false);
         }
@@ -56,9 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const res = await registerApi({ name, email, password });
             await tokenStorage.save(res.token);
-            setIsAuthenticated(true); // ← all consumers see this update
+            await tokenStorage.saveEmail(res.email);
+            setIsAuthenticated(true);
         } catch (e: any) {
-            setError(e.response?.data?.message ?? e.message ?? "Erreur inconnue");
+            setError(e.response?.data?.message ?? e.message ?? "Registration failed.");
         } finally {
             setLoading(false);
         }
@@ -66,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         await tokenStorage.delete();
+        await tokenStorage.saveEmail("");
         setIsAuthenticated(false);
     };
 

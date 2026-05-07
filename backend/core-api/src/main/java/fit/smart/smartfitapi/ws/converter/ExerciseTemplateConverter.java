@@ -1,75 +1,61 @@
 package fit.smart.smartfitapi.ws.converter;
 
 import fit.smart.smartfitapi.entity.ExerciseTemplate;
+import fit.smart.smartfitapi.entity.SessionTemplate;
+import fit.smart.smartfitapi.repository.SessionTemplateRepository;
 import fit.smart.smartfitapi.ws.dto.ExerciseTemplateDto;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@AllArgsConstructor
 public class ExerciseTemplateConverter {
 
+    private final SessionTemplateRepository sessionTemplateRepository;
+
     public ExerciseTemplateDto toDto(ExerciseTemplate entity) {
-        if (entity == null) {
-            return null;
-        }
+        if (entity == null) return null;
         ExerciseTemplateDto dto = new ExerciseTemplateDto();
-        if (entity.getId() != null) {
-            dto.setId(entity.getId());
-        }
-        if (entity.getExerciseType() != null) {
-            dto.setExerciseType(entity.getExerciseType());
-        }
-        if (entity.getPlannedReps() != null) {
-            dto.setPlannedReps(entity.getPlannedReps());
-        }
-        if (entity.getOrderInSession() != null) {
-            dto.setOrderInSession(entity.getOrderInSession());
+        dto.setId(entity.getId());
+        dto.setExerciseType(entity.getExerciseType());
+        dto.setSets(entity.getSets());
+        dto.setRepsPerSet(entity.getRepsPerSet());
+        dto.setOrderInSession(entity.getOrderInSession());
+        if (entity.getSessionTemplate() != null) {
+            dto.setSessionTemplateId(entity.getSessionTemplate().getId());
         }
         return dto;
     }
 
     public ExerciseTemplate toEntity(ExerciseTemplateDto dto) {
-        if (dto == null) {
-            return null;
-        }
+        if (dto == null) return null;
         ExerciseTemplate entity = new ExerciseTemplate();
-        if (dto.getId() != null) {
-            entity.setId(dto.getId());
-        }
-        if (dto.getExerciseType() != null) {
-            entity.setExerciseType(dto.getExerciseType());
-        }
-        if (dto.getPlannedReps() != null) {
-            entity.setPlannedReps(dto.getPlannedReps());
-        }
-        if (dto.getOrderInSession() != null) {
-            entity.setOrderInSession(dto.getOrderInSession());
+        entity.setId(dto.getId());
+        entity.setExerciseType(dto.getExerciseType());
+        entity.setSets(dto.getSets());
+        entity.setRepsPerSet(dto.getRepsPerSet());
+        entity.setOrderInSession(dto.getOrderInSession());
+        if (dto.getSessionTemplateId() != null) {
+            sessionTemplateRepository.findById(dto.getSessionTemplateId())
+                    .ifPresent(entity::setSessionTemplate);
         }
         return entity;
     }
 
     public List<ExerciseTemplateDto> toDtos(List<ExerciseTemplate> entities) {
-        if (entities == null) {
-            return null;
-        }
+        if (entities == null) return null;
         List<ExerciseTemplateDto> dtos = new ArrayList<>();
-        for (ExerciseTemplate entity : entities) {
-            dtos.add(toDto(entity));
-        }
+        for (ExerciseTemplate e : entities) dtos.add(toDto(e));
         return dtos;
     }
 
     public List<ExerciseTemplate> toEntities(List<ExerciseTemplateDto> dtos) {
-        if (dtos == null) {
-            return null;
-        }
+        if (dtos == null) return null;
         List<ExerciseTemplate> entities = new ArrayList<>();
-        for (ExerciseTemplateDto dto : dtos) {
-            entities.add(toEntity(dto));
-        }
+        for (ExerciseTemplateDto dto : dtos) entities.add(toEntity(dto));
         return entities;
     }
-
 }

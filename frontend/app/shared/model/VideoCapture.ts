@@ -1,10 +1,10 @@
-export type CaptureMode = "LIVE" | "UPLOAD";
+export type CaptureMode = "UPLOAD" | "LIVE_CAMERA";
 
 export interface VideoCapture {
   id: number;
   sourceMode: CaptureMode;
   filePath: string;
-  durationSeconds: number;
+  durationSeconds: number | null;
   uploadedAt: string;
-  exerciseId: number;
+  exerciseRepId: number;
 }

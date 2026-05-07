@@ -1,18 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl } from "react-native";
+import {
+    View, Text, ScrollView, TouchableOpacity,
+    StyleSheet, ActivityIndicator, Alert, RefreshControl,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { fetchAllPrograms, deleteProgramById, ApiError } from "@/app/shared/service/trainingProgramApi";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/context/ThemeContext";
+import { fetchMyPrograms, deleteProgramById, ApiError } from "@/app/shared/service/trainingProgramApi";
 import { TrainingProgram } from "@/app/shared/model/TrainingProgram";
 
-const statusColors: Record<string, { bg: string; text: string }> = {
-    Active:    { bg: "#1e3a5f", text: "#3b82f6" },
-    Upcoming:  { bg: "#1e293b", text: "#64748b" },
-    Completed: { bg: "#14532d", text: "#22c55e" },
-};
-
-function deriveStatus(p: TrainingProgram): string {
+function deriveStatus(p: TrainingProgram): "Active" | "Upcoming" | "Completed" {
     const today = new Date().toISOString().split("T")[0];
-    if (p.endDate < today) return "Completed";
+    if (p.endDate < today)    return "Completed";
     if (p.startDate <= today) return "Active";
     return "Upcoming";
 }
@@ -20,30 +19,33 @@ function deriveStatus(p: TrainingProgram): string {
 function completionRate(p: TrainingProgram): number {
     const today = new Date();
     const start = new Date(p.startDate);
-    const end = new Date(p.endDate);
+    const end   = new Date(p.endDate);
     if (today < start) return 0;
-    if (today > end) return 100;
-    const total = end.getTime() - start.getTime();
-    const elapsed = today.getTime() - start.getTime();
-    return Math.round((elapsed / total) * 100);
+    if (today > end)   return 100;
+    return Math.round(
+        (today.getTime() - start.getTime()) /
+        (end.getTime()   - start.getTime()) * 100
+    );
 }
 
 export default function ProgramsList() {
     const router = useRouter();
-    const [programs, setPrograms] = useState<TrainingProgram[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { theme } = useTheme();
+    const c = theme.colors;
+
+    const [programs,   setPrograms]   = useState<TrainingProgram[]>([]);
+    const [loading,    setLoading]    = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error,      setError]      = useState<string | null>(null);
 
     const loadPrograms = useCallback(async (isRefresh = false) => {
         try {
             isRefresh ? setRefreshing(true) : setLoading(true);
             setError(null);
-            const data = await fetchAllPrograms();
+            const data = await fetchMyPrograms();
             setPrograms(data);
         } catch (err) {
-            const msg = err instanceof ApiError ? err.message : "Failed to load programs.";
-            setError(msg);
+            setError(err instanceof ApiError ? err.message : "Failed to load programs.");
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -53,54 +55,67 @@ export default function ProgramsList() {
     useEffect(() => { loadPrograms(); }, [loadPrograms]);
 
     const handleDelete = (p: TrainingProgram) => {
-        Alert.alert(
-            "Delete Program",
-            `Are you sure you want to delete "${p.title}"?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await deleteProgramById(p.id);
-                            setPrograms((prev) => prev.filter((x) => x.id !== p.id));
-                        } catch (err) {
-                            const msg = err instanceof ApiError ? err.message : "Failed to delete program.";
-                            Alert.alert("Error", msg);
-                        }
-                    },
+        Alert.alert("Delete Program", `Delete "${p.title}"?`, [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete", style: "destructive",
+                onPress: async () => {
+                    try {
+                        await deleteProgramById(p.id);
+                        setPrograms((prev) => prev.filter((x) => x.id !== p.id));
+                    } catch (err) {
+                        Alert.alert("Error", err instanceof ApiError ? err.message : "Failed to delete.");
+                    }
                 },
-            ]
-        );
+            },
+        ]);
     };
 
     if (loading) {
         return (
-            <View style={[styles.root, styles.centered]}>
-                <ActivityIndicator size="large" color="#3b82f6" />
-                <Text style={styles.loadingText}>Loading programs…</Text>
+            <View style={[{ flex: 1, backgroundColor: c.background }, styles.centered]}>
+                <ActivityIndicator size="large" color={c.accent} />
+                <Text style={{ color: c.textMuted, marginTop: 12, fontSize: 14 }}>
+                    Loading programs...
+                </Text>
             </View>
         );
     }
 
+    const statusBgColor = (status: "Active" | "Upcoming" | "Completed") => {
+        if (status === "Active")    return c.blueBg;
+        if (status === "Completed") return c.successBg;
+        return c.surface;
+    };
+
+    const statusTextColor = (status: "Active" | "Upcoming" | "Completed") => {
+        if (status === "Active")    return c.blue;
+        if (status === "Completed") return c.success;
+        return c.textMuted;
+    };
+
     return (
-        <View style={styles.root}>
-            <View style={styles.header}>
-                <Text style={styles.title}>My Programs</Text>
+        <View style={{ flex: 1, backgroundColor: c.background }}>
+            {/* Header */}
+            <View style={[styles.header]}>
+                <Text style={[styles.title, { color: c.text }]}>My Programs</Text>
                 <TouchableOpacity
-                    style={styles.addButton}
+                    style={[styles.addButton, { backgroundColor: c.accent }]}
                     onPress={() => router.push("/programs/create" as any)}
+                    activeOpacity={0.8}
                 >
-                    <Text style={styles.addButtonText}>+</Text>
+                    <Ionicons name="add" size={22} color={c.accentFg} />
                 </TouchableOpacity>
             </View>
 
+            {/* Error banner */}
             {error && (
-                <View style={styles.errorBanner}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity onPress={() => loadPrograms()}>
-                        <Text style={styles.retryText}>Retry</Text>
+                <View style={[styles.errorBanner, { backgroundColor: c.errorBg, borderColor: c.error }]}>
+                    <Text style={[styles.errorText, { color: c.error }]} numberOfLines={2}>
+                        {error}
+                    </Text>
+                    <TouchableOpacity onPress={() => loadPrograms()} style={styles.retryTouchable}>
+                        <Text style={[styles.retryText, { color: c.accent }]}>Retry</Text>
                     </TouchableOpacity>
                 </View>
             )}
@@ -112,52 +127,106 @@ export default function ProgramsList() {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={() => loadPrograms(true)}
-                        tintColor="#3b82f6"
+                        tintColor={c.accent}
                     />
                 }
             >
                 {programs.length === 0 && !error ? (
-                    <View style={styles.empty}>
-                        <Text style={styles.emptyTitle}>No programs yet</Text>
-                        <Text style={styles.emptyDesc}>Create your first program to get started.</Text>
+                    /* Empty state */
+                    <View style={styles.emptyState}>
+                        <View style={[styles.emptyIconBox, { backgroundColor: c.surface }]}>
+                            <Ionicons name="calendar-outline" size={48} color={c.textMuted} />
+                        </View>
+                        <Text style={[styles.emptyTitle, { color: c.text }]}>No programs yet</Text>
+                        <Text style={[styles.emptySubtitle, { color: c.textSecondary }]}>
+                            Create your first training program to get started.
+                        </Text>
                         <TouchableOpacity
-                            style={styles.outlineButton}
+                            style={[styles.outlineButton, { borderColor: c.accent }]}
                             onPress={() => router.push("/programs/create" as any)}
+                            activeOpacity={0.7}
                         >
-                            <Text style={styles.outlineButtonText}>Create your first program</Text>
+                            <Text style={[styles.outlineButtonText, { color: c.accent }]}>
+                                Create program
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
                     programs.map((p) => {
                         const status = deriveStatus(p);
-                        const sc = statusColors[status] ?? statusColors.Upcoming;
-                        const rate = completionRate(p);
+                        const rate   = completionRate(p);
                         return (
-                            <TouchableOpacity
+                            <View
                                 key={p.id}
-                                style={styles.card}
-                                onPress={() =>
-                                    router.push({
+                                style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}
+                            >
+                                {/* Tappable card body */}
+                                <TouchableOpacity
+                                    onPress={() => router.push({
                                         pathname: "/programs/[id]",
                                         params: { id: String(p.id) },
-                                    })
-                                }
-                                onLongPress={() => handleDelete(p)}
-                            >
-                                <View style={styles.cardTop}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.cardTitle} numberOfLines={1}>{p.title}</Text>
-                                        <Text style={styles.cardDate}>{p.startDate} → {p.endDate}</Text>
+                                    } as any)}
+                                    activeOpacity={0.7}
+                                    style={styles.cardBody}
+                                >
+                                    {/* Title row + badge */}
+                                    <View style={styles.cardTopRow}>
+                                        <Text
+                                            style={[styles.cardTitle, { color: c.text }]}
+                                            numberOfLines={1}
+                                        >
+                                            {p.title}
+                                        </Text>
+                                        <View
+                                            style={[
+                                                styles.badge,
+                                                { backgroundColor: statusBgColor(status) },
+                                            ]}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.badgeText,
+                                                    { color: statusTextColor(status) },
+                                                ]}
+                                            >
+                                                {status}
+                                            </Text>
+                                        </View>
                                     </View>
-                                    <View style={[styles.badge, { backgroundColor: sc.bg }]}>
-                                        <Text style={[styles.badgeText, { color: sc.text }]}>{status}</Text>
+
+                                    {/* Date range */}
+                                    <Text style={[styles.cardDate, { color: c.textMuted }]}>
+                                        {p.startDate}  {p.endDate}
+                                    </Text>
+
+                                    {/* Progress bar */}
+                                    <View style={[styles.progressBg, { backgroundColor: c.border }]}>
+                                        <View
+                                            style={[
+                                                styles.progressFill,
+                                                { width: `${rate}%` as any, backgroundColor: c.accent },
+                                            ]}
+                                        />
                                     </View>
+                                    <Text style={[styles.progressLabel, { color: c.textMuted }]}>
+                                        {rate}% complete
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {/* Delete button row */}
+                                <View style={[styles.cardActions, { borderTopColor: c.border }]}>
+                                    <TouchableOpacity
+                                        style={[styles.deleteBtn, { backgroundColor: c.errorBg, borderColor: c.error }]}
+                                        onPress={() => handleDelete(p)}
+                                        activeOpacity={0.75}
+                                    >
+                                        <Ionicons name="trash-outline" size={13} color={c.error} />
+                                        <Text style={[styles.deleteBtnText, { color: c.error }]}>
+                                            Delete
+                                        </Text>
+                                    </TouchableOpacity>
                                 </View>
-                                <View style={styles.progressBg}>
-                                    <View style={[styles.progressFill, { width: `${rate}%` as any }]} />
-                                </View>
-                                <Text style={styles.progressLabel}>{rate}% complete</Text>
-                            </TouchableOpacity>
+                            </View>
                         );
                     })
                 )}
@@ -167,129 +236,161 @@ export default function ProgramsList() {
 }
 
 const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: "#0f172a" },
-    centered: { alignItems: "center", justifyContent: "center" },
-    loadingText: { color: "#64748b", marginTop: 12, fontSize: 14 },
-    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16 },
-    title: { fontSize: 22, fontWeight: "800", color: "#f1f5f9" },
-    addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#3b82f6", alignItems: "center", justifyContent: "center" },
-    addButtonText: { color: "#fff", fontSize: 24, lineHeight: 28 },
-    errorBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#450a0a", marginHorizontal: 16, marginBottom: 8, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#ef4444" },
-    errorText: { color: "#fca5a5", fontSize: 13, flex: 1 },
-    retryText: { color: "#3b82f6", fontSize: 13, fontWeight: "600", marginLeft: 12 },
-    list: { padding: 16, gap: 12 },
-    card: { backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
-    cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 12 },
-    cardTitle: { fontSize: 15, fontWeight: "700", color: "#f1f5f9" },
-    cardDate: { fontSize: 12, color: "#64748b", marginTop: 2 },
-    badge: { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
-    badgeText: { fontSize: 11, fontWeight: "600" },
-    progressBg: { height: 6, backgroundColor: "#334155", borderRadius: 3 },
-    progressFill: { height: 6, backgroundColor: "#3b82f6", borderRadius: 3 },
-    progressLabel: { fontSize: 11, color: "#64748b", marginTop: 6 },
-    empty: { alignItems: "center", paddingTop: 80 },
-    emptyTitle: { fontSize: 16, fontWeight: "700", color: "#f1f5f9" },
-    emptyDesc: { fontSize: 13, color: "#64748b", marginTop: 4 },
-    outlineButton: { marginTop: 16, borderWidth: 1, borderColor: "#3b82f6", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
-    outlineButtonText: { color: "#3b82f6", fontWeight: "600" },
+    centered: {
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        paddingTop: 60,
+        paddingBottom: 16,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: "800",
+        letterSpacing: -0.5,
+    },
+    addButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    errorBanner: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginHorizontal: 20,
+        marginBottom: 8,
+        borderRadius: 10,
+        padding: 12,
+        borderWidth: 1,
+    },
+    errorText: {
+        fontSize: 13,
+        flex: 1,
+        fontWeight: "500",
+    },
+    retryTouchable: {
+        marginLeft: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+    },
+    retryText: {
+        fontSize: 13,
+        fontWeight: "700",
+    },
+    list: {
+        paddingHorizontal: 20,
+        paddingTop: 4,
+        paddingBottom: 40,
+        gap: 12,
+    },
+    /* Empty state */
+    emptyState: {
+        alignItems: "center",
+        paddingTop: 80,
+        paddingHorizontal: 32,
+    },
+    emptyIconBox: {
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 20,
+    },
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        marginBottom: 6,
+    },
+    emptySubtitle: {
+        fontSize: 14,
+        textAlign: "center",
+        lineHeight: 20,
+        marginBottom: 24,
+    },
+    outlineButton: {
+        borderWidth: 1.5,
+        borderRadius: 10,
+        paddingHorizontal: 20,
+        paddingVertical: 11,
+    },
+    outlineButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    /* Program card */
+    card: {
+        borderRadius: 16,
+        borderWidth: 1,
+        overflow: "hidden",
+    },
+    cardBody: {
+        padding: 16,
+    },
+    cardTopRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        marginBottom: 6,
+    },
+    cardTitle: {
+        fontSize: 15,
+        fontWeight: "700",
+        flex: 1,
+    },
+    badge: {
+        borderRadius: 99,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    badgeText: {
+        fontSize: 11,
+        fontWeight: "600",
+    },
+    cardDate: {
+        fontSize: 12,
+        marginBottom: 12,
+    },
+    progressBg: {
+        height: 5,
+        borderRadius: 3,
+        overflow: "hidden",
+    },
+    progressFill: {
+        height: 5,
+        borderRadius: 3,
+    },
+    progressLabel: {
+        fontSize: 11,
+        marginTop: 5,
+    },
+    /* Delete row */
+    cardActions: {
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        borderTopWidth: 1,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+    },
+    deleteBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+    },
+    deleteBtnText: {
+        fontSize: 12,
+        fontWeight: "600",
+    },
 });
-
-// import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
-// import { useRouter } from "expo-router";
-// import { mockPrograms } from "@/mocks/programs";
-//
-// const statusColors: Record<string, { bg: string; text: string }> = {
-//     Active:   { bg: "#1e3a5f", text: "#3b82f6" },
-//     Upcoming: { bg: "#1e293b", text: "#64748b" },
-//     Completed:{ bg: "#14532d", text: "#22c55e" },
-// };
-//
-// export default function ProgramsList() {
-//     const router = useRouter();
-//
-//     return (
-//         <View style={styles.root}>
-//             {/* Header */}
-//             <View style={styles.header}>
-//                 <Text style={styles.title}>My Programs</Text>
-//                 <TouchableOpacity
-//                     style={styles.addButton}
-//                     onPress={() => router.push("/programs/create" as any)}
-//                 >
-//                     <Text style={styles.addButtonText}>+</Text>
-//                 </TouchableOpacity>
-//             </View>
-//
-//             <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-//                 {mockPrograms.length === 0 ? (
-//                     <View style={styles.empty}>
-//                         <Text style={styles.emptyTitle}>No programs yet</Text>
-//                         <Text style={styles.emptyDesc}>Create your first program to get started.</Text>
-//                         <TouchableOpacity
-//                             style={styles.outlineButton}
-//                             onPress={() => router.push("/programs/create" as any)}
-//                         >
-//                             <Text style={styles.outlineButtonText}>Create your first program</Text>
-//                         </TouchableOpacity>
-//                     </View>
-//                 ) : (
-//                     mockPrograms.map((p) => {
-//                         const sc = statusColors[p.status] ?? statusColors.Upcoming;
-//                         return (
-//                             <TouchableOpacity
-//                                 key={p.id}
-//                                 style={styles.card}
-//                                 onPress={() =>
-//                                     router.push({
-//                                         pathname: "/programs/[id]",
-//                                         params: {
-//                                             id: p.id,
-//                                         },
-//                                     })
-//                                 }
-//                             >
-//                                 <View style={styles.cardTop}>
-//                                     <View style={{ flex: 1 }}>
-//                                         <Text style={styles.cardTitle} numberOfLines={1}>{p.title}</Text>
-//                                         <Text style={styles.cardDate}>{p.startDate} → {p.endDate}</Text>
-//                                     </View>
-//                                     <View style={[styles.badge, { backgroundColor: sc.bg }]}>
-//                                         <Text style={[styles.badgeText, { color: sc.text }]}>{p.status}</Text>
-//                                     </View>
-//                                 </View>
-//                                 {/* Progress bar */}
-//                                 <View style={styles.progressBg}>
-//                                     <View style={[styles.progressFill, { width: `${p.completionRate}%` as any }]} />
-//                                 </View>
-//                                 <Text style={styles.progressLabel}>{p.completionRate}% complete</Text>
-//                             </TouchableOpacity>
-//                         );
-//                     })
-//                 )}
-//             </ScrollView>
-//         </View>
-//     );
-// }
-//
-// const styles = StyleSheet.create({
-//     root: { flex: 1, backgroundColor: "#0f172a" },
-//     header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 56, paddingBottom: 16 },
-//     title: { fontSize: 22, fontWeight: "800", color: "#f1f5f9" },
-//     addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#3b82f6", alignItems: "center", justifyContent: "center" },
-//     addButtonText: { color: "#fff", fontSize: 24, lineHeight: 28 },
-//     list: { padding: 16, gap: 12 },
-//     card: { backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
-//     cardTop: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: 12 },
-//     cardTitle: { fontSize: 15, fontWeight: "700", color: "#f1f5f9" },
-//     cardDate: { fontSize: 12, color: "#64748b", marginTop: 2 },
-//     badge: { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
-//     badgeText: { fontSize: 11, fontWeight: "600" },
-//     progressBg: { height: 6, backgroundColor: "#334155", borderRadius: 3 },
-//     progressFill: { height: 6, backgroundColor: "#3b82f6", borderRadius: 3 },
-//     progressLabel: { fontSize: 11, color: "#64748b", marginTop: 6 },
-//     empty: { alignItems: "center", paddingTop: 80 },
-//     emptyTitle: { fontSize: 16, fontWeight: "700", color: "#f1f5f9" },
-//     emptyDesc: { fontSize: 13, color: "#64748b", marginTop: 4 },
-//     outlineButton: { marginTop: 16, borderWidth: 1, borderColor: "#3b82f6", borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
-//     outlineButtonText: { color: "#3b82f6", fontWeight: "600" },
-// });

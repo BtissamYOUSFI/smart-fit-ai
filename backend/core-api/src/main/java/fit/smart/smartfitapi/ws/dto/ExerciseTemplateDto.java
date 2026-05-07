@@ -9,13 +9,9 @@ import lombok.Setter;
 public class ExerciseTemplateDto {
 
     private Long id;
-
     private ExerciseType exerciseType;
-
-    private Integer plannedReps;
-
+    private Integer sets;
+    private Integer repsPerSet;
     private Integer orderInSession;
-
     private Long sessionTemplateId;
-
 }

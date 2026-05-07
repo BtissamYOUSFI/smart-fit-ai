@@ -1,43 +1,40 @@
 import { useEffect } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { LoadingDots } from "../../components/bouncingDots"
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/context/ThemeContext";
 
 export default function Splash() {
-    const router = useRouter();
+  const router = useRouter();
+  const { theme } = useTheme();
+  const c = theme.colors;
 
-    useEffect(() => {
-        const t = setTimeout(() => {
-            // Remplace par la logique auth : si token → dashboard, sinon → onboarding
-            router.replace("/auth/onboarding" as any);
-        }, 2000);
-        return () => clearTimeout(t);
-    }, []);
+  useEffect(() => {
+    const t = setTimeout(() => router.replace("/auth/onboarding" as any), 2200);
+    return () => clearTimeout(t);
+  }, []);
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.iconBox}>
-                <Text style={styles.icon}>🏋️</Text>
-            </View>
-            <Text style={styles.title}>SmartFit AI</Text>
-            <Text style={styles.subtitle}>Train smarter. Move better.</Text>
-            {/*<View style={styles.dots}>*/}
-            {/*    <View style={[styles.dot, { opacity: 0.4 }]} />*/}
-            {/*    <View style={[styles.dot, { opacity: 0.7 }]} />*/}
-            {/*    <View style={styles.dot} />*/}
-            {/*</View>*/}
-            <LoadingDots />
-
-        </View>
-    );
+  return (
+    <View style={[styles.root, { backgroundColor: c.background }]}>
+      <View style={[styles.iconBox, { backgroundColor: c.accent }]}>
+        <Ionicons name="barbell" size={36} color={c.accentFg} />
+      </View>
+      <Text style={[styles.title, { color: c.text }]}>SmartFit AI</Text>
+      <Text style={[styles.sub, { color: c.textSecondary }]}>Train smarter. Move better.</Text>
+      <View style={styles.dotsRow}>
+        {[0.3, 0.6, 1].map((op, i) => (
+          <View key={i} style={[styles.dot, { backgroundColor: c.textMuted, opacity: op }]} />
+        ))}
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center", padding: 24 },
-    iconBox: { width: 80, height: 80, borderRadius: 20, backgroundColor: "#3b82f6", alignItems: "center", justifyContent: "center" },
-    icon: { fontSize: 38 },
-    title: { marginTop: 24, fontSize: 28, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
-    subtitle: { marginTop: 8, fontSize: 13, color: "rgba(255,255,255,0.6)" },
-    dots: { marginTop: 48, flexDirection: "row", gap: 8 },
-    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#3b82f6" },
+  root:    { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  iconBox: { width: 72, height: 72, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  title:   { marginTop: 20, fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
+  sub:     { marginTop: 6, fontSize: 14 },
+  dotsRow: { marginTop: 48, flexDirection: "row", gap: 8 },
+  dot:     { width: 7, height: 7, borderRadius: 4 },
 });

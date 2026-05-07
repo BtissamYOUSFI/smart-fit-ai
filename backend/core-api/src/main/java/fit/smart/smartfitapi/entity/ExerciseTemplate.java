@@ -22,7 +22,10 @@ public class ExerciseTemplate {
     private ExerciseType exerciseType;
 
     @Column(nullable = false)
-    private Integer plannedReps;
+    private Integer sets;
+
+    @Column(nullable = false)
+    private Integer repsPerSet;
 
     @Column(nullable = false)
     private Integer orderInSession;

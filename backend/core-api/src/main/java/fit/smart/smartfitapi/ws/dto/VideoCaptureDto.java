@@ -11,16 +11,9 @@ import java.time.LocalDateTime;
 public class VideoCaptureDto {
 
     private Long id;
-
     private CaptureMode sourceMode;
-
     private String filePath;
-
     private Integer durationSeconds;
-
     private LocalDateTime uploadedAt;
-
-    private Long exerciseId;
-
+    private Long exerciseRepId;
 }
-

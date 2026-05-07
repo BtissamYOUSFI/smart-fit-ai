@@ -1,11 +1,10 @@
-export type ExerciseType =
-  | "SQUAT" | "PUSH_UP" | "LUNGE"
-  | "DEADLIFT" | "PLANK" | "PULL_UP";
+export type ExerciseType = "SQUAT" | "PUSHUP" | "BICEP" | "PLANK";
 
 export interface ExerciseTemplate {
   id: number;
   exerciseType: ExerciseType;
-  plannedReps: number;
+  sets: number;
+  repsPerSet: number;
   orderInSession: number;
   sessionTemplateId: number;
 }

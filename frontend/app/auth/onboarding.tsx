@@ -1,129 +1,125 @@
 import { useRef, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import {
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  Dimensions, NativeScrollEvent, NativeSyntheticEvent,
+} from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/context/ThemeContext";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: W } = Dimensions.get("window");
 
-const slides = [
-    {
-        icon: "📊",
-        title: "Track your form",
-        desc: "AI-powered posture analysis in real time, on every rep.",
-        bg: "#1e3a5f",
-    },
-    {
-        icon: "📅",
-        title: "Build your program",
-        desc: "Create personalized workout programs week by week.",
-        bg: "#14532d",
-    },
-    {
-        icon: "📈",
-        title: "Improve with data",
-        desc: "Track scores and detect recurring errors over time.",
-        bg: "#451a03",
-    },
+type IoniconName = keyof typeof Ionicons.glyphMap;
+
+const slides: { icon: IoniconName; title: string; desc: string }[] = [
+  { icon: "analytics",     title: "Track your form",      desc: "AI-powered posture analysis on every rep, in real time." },
+  { icon: "calendar",      title: "Build your program",   desc: "Create personalized workout programs week by week." },
+  { icon: "trending-up",   title: "Improve with data",    desc: "Track scores and detect recurring errors over time." },
 ];
 
 export default function Onboarding() {
-    const router = useRouter();
-    const [index, setIndex] = useState(0);
-    const scrollRef = useRef<ScrollView>(null);
+  const router = useRouter();
+  const { theme } = useTheme();
+  const c = theme.colors;
+  const [index, setIndex] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
 
-    const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const x = e.nativeEvent.contentOffset.x;
-        setIndex(Math.round(x / SCREEN_WIDTH));
-    };
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setIndex(Math.round(e.nativeEvent.contentOffset.x / W));
+  };
 
-    const goNext = () => {
-        const next = Math.min(index + 1, slides.length - 1);
-        scrollRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true });
-    };
+  const goNext = () => {
+    const next = Math.min(index + 1, slides.length - 1);
+    scrollRef.current?.scrollTo({ x: next * W, animated: true });
+  };
 
-    return (
-        <View style={styles.root}>
-            {/* Skip */}
-            <View style={styles.skipRow}>
-                {index < slides.length - 1 ? (
-                    <TouchableOpacity onPress={() => router.replace("/auth/login" as any)}>
-                        <Text style={styles.skipText}>Skip</Text>
-                    </TouchableOpacity>
-                ) : (
-                    <Text style={{ opacity: 0 }}>Skip</Text>
-                )}
+  return (
+    <View style={[styles.root, { backgroundColor: c.background }]}>
+      {/* Skip */}
+      <View style={styles.skipRow}>
+        {index < slides.length - 1 ? (
+          <TouchableOpacity onPress={() => router.replace("/auth/login" as any)}>
+            <Text style={[styles.skip, { color: c.textSecondary }]}>Skip</Text>
+          </TouchableOpacity>
+        ) : <View style={{ width: 40 }} />}
+      </View>
+
+      {/* Slides */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        style={{ flex: 1 }}
+      >
+        {slides.map((slide, i) => (
+          <View key={i} style={[styles.slide, { width: W }]}>
+            <View style={[styles.iconBox, { backgroundColor: c.surface }]}>
+              <Ionicons name={slide.icon} size={56} color={c.accent} />
             </View>
+            <Text style={[styles.slideTitle, { color: c.text }]}>{slide.title}</Text>
+            <Text style={[styles.slideDesc, { color: c.textSecondary }]}>{slide.desc}</Text>
+          </View>
+        ))}
+      </ScrollView>
 
-            {/* Slides */}
-            <ScrollView
-                ref={scrollRef}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={onScroll}
-                scrollEventThrottle={16}
-                style={styles.slider}
+      {/* Dots */}
+      <View style={styles.dots}>
+        {slides.map((_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.dot,
+              { backgroundColor: i === index ? c.accent : c.border },
+              i === index && { width: 24 },
+            ]}
+          />
+        ))}
+      </View>
+
+      {/* Actions */}
+      <View style={[styles.actions, { paddingBottom: 48 }]}>
+        {index === slides.length - 1 ? (
+          <>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: c.accent }]}
+              onPress={() => router.replace("/auth/register" as any)}
             >
-                {slides.map((slide, i) => (
-                    <View key={i} style={styles.slide}>
-                        <View style={[styles.iconBox, { backgroundColor: slide.bg }]}>
-                            <Text style={styles.slideIcon}>{slide.icon}</Text>
-                        </View>
-                        <Text style={styles.slideTitle}>{slide.title}</Text>
-                        <Text style={styles.slideDesc}>{slide.desc}</Text>
-                    </View>
-                ))}
-            </ScrollView>
-
-            {/* Dots */}
-            <View style={styles.dots}>
-                {slides.map((_, i) => (
-                    <View key={i} style={[styles.dot, i === index && styles.dotActive]} />
-                ))}
-            </View>
-
-            {/* Buttons */}
-            <View style={styles.actions}>
-                {index === slides.length - 1 ? (
-                    <>
-                        <TouchableOpacity
-                            style={styles.primaryButton}
-                            onPress={() => router.replace("/auth/register" as any)}
-                        >
-                            <Text style={styles.primaryButtonText}>Create account</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.outlineButton}
-                            onPress={() => router.replace("/auth/login" as any)}
-                        >
-                            <Text style={styles.outlineButtonText}>I already have an account</Text>
-                        </TouchableOpacity>
-                    </>
-                ) : (
-                    <TouchableOpacity style={styles.primaryButton} onPress={goNext}>
-                        <Text style={styles.primaryButtonText}>Continue</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-        </View>
-    );
+              <Text style={[styles.btnText, { color: c.accentFg }]}>Create account</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btn, styles.outlineBtn, { borderColor: c.border }]}
+              onPress={() => router.replace("/auth/login" as any)}
+            >
+              <Text style={[styles.btnText, { color: c.text }]}>I already have an account</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: c.accent }]}
+            onPress={goNext}
+          >
+            <Text style={[styles.btnText, { color: c.accentFg }]}>Continue</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: "#0f172a" },
-    skipRow: { alignItems: "flex-end", paddingHorizontal: 20, paddingTop: 56 },
-    skipText: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.6)" },
-    slider: { flex: 1 },
-    slide: { width: SCREEN_WIDTH, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
-    iconBox: { width: 200, height: 200, borderRadius: 32, alignItems: "center", justifyContent: "center", marginBottom: 40 },
-    slideIcon: { fontSize: 80 },
-    slideTitle: { fontSize: 24, fontWeight: "800", color: "#fff", textAlign: "center" },
-    slideDesc: { marginTop: 12, fontSize: 14, color: "rgba(255,255,255,0.6)", textAlign: "center", maxWidth: 280 },
-    dots: { flexDirection: "row", justifyContent: "center", gap: 8, paddingBottom: 24 },
-    dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.3)" },
-    dotActive: { width: 24, backgroundColor: "#3b82f6" },
-    actions: { paddingHorizontal: 24, paddingBottom: 40, gap: 12 },
-    primaryButton: { height: 52, backgroundColor: "#3b82f6", borderRadius: 8, alignItems: "center", justifyContent: "center" },
-    primaryButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-    outlineButton: { height: 52, borderWidth: 2, borderColor: "#3b82f6", borderRadius: 8, alignItems: "center", justifyContent: "center" },
-    outlineButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  root:       { flex: 1 },
+  skipRow:    { alignItems: "flex-end", paddingHorizontal: 24, paddingTop: 56 },
+  skip:       { fontSize: 14, fontWeight: "600" },
+  slide:      { alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
+  iconBox:    { width: 160, height: 160, borderRadius: 40, alignItems: "center", justifyContent: "center", marginBottom: 40 },
+  slideTitle: { fontSize: 26, fontWeight: "800", textAlign: "center", letterSpacing: -0.3 },
+  slideDesc:  { marginTop: 12, fontSize: 15, textAlign: "center", maxWidth: 280, lineHeight: 22 },
+  dots:       { flexDirection: "row", justifyContent: "center", gap: 6, paddingBottom: 32 },
+  dot:        { width: 8, height: 8, borderRadius: 4 },
+  actions:    { paddingHorizontal: 24, gap: 12 },
+  btn:        { height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  outlineBtn: { backgroundColor: "transparent", borderWidth: 1.5 },
+  btnText:    { fontSize: 16, fontWeight: "600" },
 });

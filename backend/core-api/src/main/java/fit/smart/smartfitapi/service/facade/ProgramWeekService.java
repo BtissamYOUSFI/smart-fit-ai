@@ -10,5 +10,5 @@ public interface ProgramWeekService {
     ProgramWeek findById(Long id);
     ProgramWeek save(ProgramWeek programWeek);
     int deleteById(Long id);
-
+    ProgramWeek getOrGenerateWeek(Long programId, Integer weekNumber);
 }

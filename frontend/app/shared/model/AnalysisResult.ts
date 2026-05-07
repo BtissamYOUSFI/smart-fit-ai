@@ -1,13 +1,19 @@
+export interface AnalysisError {
+  joint: string;
+  occurrences: number;
+  avgAngle: number;
+  worstAngle: number;
+  range: [number, number];
+  message: string;
+}
+
 export interface AnalysisResult {
   id: number;
-  avgKneeAngle: number;
-  avgHipAngle: number;
-  avgBackAngle: number;
-  stabilityScore: number;
-  amplitudeScore: number;
-  detectedErrors: string[];
-  feedback: string;
-  analyzedAt: string;
   globalScore: number;
-  exerciseId: number;
+  exerciseName: string;
+  framesAnalyzed: number;
+  errors: AnalysisError[];
+  feedback: string[];
+  analyzedAt: string;
+  exerciseRepId: number;
 }

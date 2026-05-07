@@ -1,285 +1,141 @@
 import { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import { Link } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/app/context/AuthContext";
+import { useTheme } from "@/app/context/ThemeContext";
 
 function Field({
-                   label, type = "text", value, onChange, error, placeholder, showToggle, showValue, onToggle,
-               }: {
-    label: string; type?: string; value: string; onChange: (v: string) => void;
-    error?: string; placeholder?: string; showToggle?: boolean; showValue?: boolean; onToggle?: () => void;
+  label, type = "text", value, onChange, error, placeholder, showToggle, showValue, onToggle, colors,
+}: {
+  label: string; type?: string; value: string; onChange: (v: string) => void;
+  error?: string; placeholder?: string; showToggle?: boolean; showValue?: boolean; onToggle?: () => void;
+  colors: any;
 }) {
-    return (
-        <View>
-            <Text style={styles.label}>{label}</Text>
-            <View style={styles.inputWrapper}>
-                <TextInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder={placeholder}
-                    placeholderTextColor="#64748b"
-                    secureTextEntry={type === "password" && !showValue}
-                    keyboardType={type === "email" ? "email-address" : "default"}
-                    autoCapitalize="none"
-                    style={[styles.input, showToggle && { paddingRight: 44 }, error && styles.inputError]}
-                />
-                {showToggle && (
-                    <TouchableOpacity onPress={onToggle} style={styles.eyeButton}>
-                        <Text style={styles.eyeText}>{showValue ? "🙈" : "👁️"}</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-            {error && <Text style={styles.fieldError}>{error}</Text>}
-        </View>
-    );
+  return (
+    <View>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      <View>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor={colors.placeholder}
+          secureTextEntry={type === "password" && !showValue}
+          keyboardType={type === "email" ? "email-address" : "default"}
+          autoCapitalize="none"
+          style={[
+            styles.input,
+            { backgroundColor: colors.inputBg, borderColor: error ? colors.error : colors.border, color: colors.text },
+            showToggle && { paddingRight: 48 },
+          ]}
+        />
+        {showToggle && (
+          <TouchableOpacity onPress={onToggle} style={styles.eyeBtn}>
+            <Ionicons name={showValue ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
+      {error && <Text style={[styles.fieldErr, { color: colors.error }]}>{error}</Text>}
+    </View>
+  );
 }
 
 export default function Register() {
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirm, setConfirm] = useState("");
-    const [showPw, setShowPw] = useState(false);
-    const [showCpw, setShowCpw] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-    const { register, loading, error, clearError } = useAuth();
+  const { theme } = useTheme();
+  const c = theme.colors;
+  const { register, loading, error, clearError } = useAuth();
 
-    useEffect(() => { clearError(); }, []);
+  const [name, setName]       = useState("");
+  const [email, setEmail]     = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw]   = useState(false);
+  const [showCpw, setShowCpw] = useState(false);
+  const [errors, setErrors]   = useState<Record<string, string>>({});
 
-    const validate = () => {
-        const e: Record<string, string> = {};
-        if (!name.trim()) e.name = "Name is required";
-        if (!/^\S+@\S+\.\S+$/.test(email)) e.email = "Enter a valid email";
-        if (password.length < 6) e.password = "At least 6 characters";
-        if (confirm !== password) e.confirm = "Passwords don't match";
-        setErrors(e);
-        return Object.keys(e).length === 0;
-    };
+  useEffect(() => { clearError(); }, []);
 
-    const onSubmit = async () => {
-        if (!validate()) return;
-        await register(name, email, password);
-    };
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!name.trim())                      e.name    = "Name is required";
+    if (!/^\S+@\S+\.\S+$/.test(email))    e.email   = "Enter a valid email";
+    if (password.length < 6)               e.password = "At least 6 characters";
+    if (confirm !== password)              e.confirm  = "Passwords don't match";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
 
-    return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <View style={styles.card}>
-                <Text style={styles.title}>Create your account</Text>
-                <Text style={styles.subtitle}>Start training with SmartFit AI today.</Text>
+  const onSubmit = async () => {
+    if (!validate()) return;
+    await register(name, email, password);
+  };
 
-                {error && (
-                    <View style={styles.errorBanner}>
-                        <Text style={styles.errorBannerText}>⚠️  {error}</Text>
-                    </View>
-                )}
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: c.background }}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={[styles.iconBox, { backgroundColor: c.surface }]}>
+        <Ionicons name="barbell" size={28} color={c.accent} />
+      </View>
 
-                <View style={styles.form}>
-                    <Field
-                        label="Full name" value={name} placeholder="Alex Martin" error={errors.name}
-                        onChange={(v) => { setName(v); clearError(); }}
-                    />
-                    <Field
-                        label="Email" type="email" value={email} placeholder="you@example.com" error={errors.email}
-                        onChange={(v) => { setEmail(v); clearError(); }}
-                    />
-                    <Field
-                        label="Password" type="password" value={password} placeholder="••••••••"
-                        error={errors.password} showToggle showValue={showPw} onToggle={() => setShowPw((s) => !s)}
-                        onChange={(v) => { setPassword(v); clearError(); }}
-                    />
-                    <Field
-                        label="Confirm password" type="password" value={confirm} placeholder="••••••••"
-                        error={errors.confirm} showToggle showValue={showCpw} onToggle={() => setShowCpw((s) => !s)}
-                        onChange={(v) => { setConfirm(v); clearError(); }}
-                    />
+      <Text style={[styles.title, { color: c.text }]}>Create your account</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Start training with SmartFit AI today.</Text>
 
-                    <TouchableOpacity onPress={onSubmit} disabled={loading} style={[styles.button, loading && { opacity: 0.7 }]}>
-                        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create account</Text>}
-                    </TouchableOpacity>
-                </View>
+      {error && (
+        <View style={[styles.errorBanner, { backgroundColor: c.errorBg, borderColor: c.error }]}>
+          <Ionicons name="warning-outline" size={14} color={c.error} />
+          <Text style={[styles.errorText, { color: c.error }]}>{error}</Text>
+        </View>
+      )}
 
-                <Text style={styles.footerText}>
-                    Already have an account?{" "}
-                    <Link href="/auth/login" style={styles.linkText}>Login</Link>
-                </Text>
-            </View>
-        </ScrollView>
-    );
+      <View style={styles.form}>
+        <Field label="Full name" value={name} placeholder="Alex Martin" error={errors.name} colors={c}
+          onChange={(v) => { setName(v); clearError(); }} />
+        <Field label="Email" type="email" value={email} placeholder="you@example.com" error={errors.email} colors={c}
+          onChange={(v) => { setEmail(v); clearError(); }} />
+        <Field label="Password" type="password" value={password} placeholder="••••••••"
+          error={errors.password} showToggle showValue={showPw} onToggle={() => setShowPw((s) => !s)} colors={c}
+          onChange={(v) => { setPassword(v); clearError(); }} />
+        <Field label="Confirm password" type="password" value={confirm} placeholder="••••••••"
+          error={errors.confirm} showToggle showValue={showCpw} onToggle={() => setShowCpw((s) => !s)} colors={c}
+          onChange={(v) => { setConfirm(v); clearError(); }} />
+
+        <TouchableOpacity
+          onPress={onSubmit}
+          disabled={loading}
+          style={[styles.btn, { backgroundColor: c.accent, opacity: loading ? 0.7 : 1 }]}
+        >
+          {loading
+            ? <ActivityIndicator color={c.accentFg} />
+            : <Text style={[styles.btnText, { color: c.accentFg }]}>Create account</Text>
+          }
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.footer, { color: c.textSecondary }]}>
+        Already have an account?{" "}
+        <Link href="/auth/login" style={{ color: c.blue, fontWeight: "700" }}>Sign in</Link>
+      </Text>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flexGrow: 1, justifyContent: "center", backgroundColor: "#0f172a", padding: 20 },
-    card: { backgroundColor: "#1e293b", borderRadius: 16, padding: 24 },
-    title: { fontSize: 22, fontWeight: "800", color: "#f1f5f9" },
-    subtitle: { marginTop: 4, fontSize: 13, color: "#94a3b8", marginBottom: 16 },
-    errorBanner: { marginBottom: 16, backgroundColor: "#7f1d1d", borderWidth: 1, borderColor: "#ef4444", borderRadius: 8, padding: 12 },
-    errorBannerText: { color: "#fca5a5", fontSize: 13, fontWeight: "600" },
-    form: { gap: 16 },
-    label: { fontSize: 12, fontWeight: "600", color: "#f1f5f9", marginBottom: 6 },
-    inputWrapper: { position: "relative" },
-    input: { height: 48, borderWidth: 1, borderColor: "#334155", borderRadius: 8, paddingHorizontal: 12, fontSize: 14, color: "#f1f5f9", backgroundColor: "#0f172a" },
-    inputError: { borderColor: "#ef4444" },
-    fieldError: { marginTop: 4, fontSize: 12, color: "#ef4444" },
-    eyeButton: { position: "absolute", right: 10, top: 12 },
-    eyeText: { fontSize: 16 },
-    button: { height: 52, backgroundColor: "#3b82f6", borderRadius: 8, justifyContent: "center", alignItems: "center", marginTop: 8 },
-    buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-    footerText: { marginTop: 24, textAlign: "center", fontSize: 13, color: "#94a3b8" },
-    linkText: { fontWeight: "600", color: "#3b82f6" },
+  container:   { flexGrow: 1, justifyContent: "center", padding: 28 },
+  iconBox:     { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", marginBottom: 24 },
+  title:       { fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
+  subtitle:    { marginTop: 6, fontSize: 14, lineHeight: 20, marginBottom: 28 },
+  errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 20 },
+  errorText:   { fontSize: 13, fontWeight: "500", flex: 1 },
+  form:        { gap: 18 },
+  label:       { fontSize: 13, fontWeight: "600", marginBottom: 8 },
+  input:       { height: 50, borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, fontSize: 15 },
+  fieldErr:    { marginTop: 5, fontSize: 12 },
+  eyeBtn:      { position: "absolute", right: 14, top: 14 },
+  btn:         { height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  btnText:     { fontSize: 16, fontWeight: "700" },
+  footer:      { marginTop: 32, textAlign: "center", fontSize: 13 },
 });
-// import { useState } from "react";
-// import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
-// import {Link, router, useRouter} from "expo-router";
-// import { useAuth } from "@/app/context/AuthContext";
-//
-// function Field({
-//                    label,
-//                    type = "text",
-//                    value,
-//                    onChange,
-//                    error,
-//                    placeholder,
-//                    showToggle,
-//                    showValue,
-//                    onToggle,
-//                }: {
-//     label: string;
-//     type?: string;
-//     value: string;
-//     onChange: (v: string) => void;
-//     error?: string;
-//     placeholder?: string;
-//     showToggle?: boolean;
-//     showValue?: boolean;
-//     onToggle?: () => void;
-// }) {
-//     return (
-//         <View>
-//             <Text style={styles.label}>{label}</Text>
-//             <View style={styles.inputWrapper}>
-//                 <TextInput
-//                     value={value}
-//                     onChangeText={onChange}
-//                     placeholder={placeholder}
-//                     placeholderTextColor="#64748b"
-//                     secureTextEntry={type === "password" && !showValue}
-//                     keyboardType={type === "email" ? "email-address" : "default"}
-//                     autoCapitalize="none"
-//                     style={[styles.input, showToggle && { paddingRight: 44 }]}
-//                 />
-//                 {showToggle && (
-//                     <TouchableOpacity onPress={onToggle} style={styles.eyeButton}>
-//                         <Text style={styles.eyeText}>{showValue ? "🙈" : "👁️"}</Text>
-//                     </TouchableOpacity>
-//                 )}
-//             </View>
-//             {error && <Text style={styles.error}>{error}</Text>}
-//         </View>
-//     );
-// }
-//
-// export default function Register() {
-//     const [name, setName] = useState("");
-//     const [email, setEmail] = useState("");
-//     const [password, setPassword] = useState("");
-//     const [confirm, setConfirm] = useState("");
-//     const [showPw, setShowPw] = useState(false);
-//     const [showCpw, setShowCpw] = useState(false);
-//     const [errors, setErrors] = useState<Record<string, string>>({});
-//     // const [loading, setLoading] = useState(false);
-//      const { register, loading, error } = useAuth();  // ← use hook's loading
-//
-//     const validate = () => {
-//         const e: Record<string, string> = {};
-//         if (!name.trim()) e.name = "Name is required";
-//         if (!/^\S+@\S+\.\S+$/.test(email)) e.email = "Enter a valid email";
-//         if (password.length < 6) e.password = "At least 6 characters";
-//         if (confirm !== password) e.confirm = "Passwords don't match";
-//         setErrors(e);
-//         return Object.keys(e).length === 0;
-//     };
-//
-//     const onSubmit = async () => {
-//         if (!validate()) return;
-//         await register(name, email, password);
-//     };
-//     // const onSubmit = async () => {
-//     //     if (!validate()) return;
-//     //     setLoading(true);
-//     //     try {
-//     //         // await register(name, email, password);
-//     //         router.replace("/(tabs)/pages/dashboard");
-//     //     } finally {
-//     //         setLoading(false);
-//     //     }
-//     // };
-//
-//     return (
-//         <ScrollView contentContainerStyle={styles.container}>
-//             <View style={styles.card}>
-//                 <Text style={styles.title}>Create your account</Text>
-//                 <Text style={styles.subtitle}>Start training with SmartFit AI today.</Text>
-//
-//                 <View style={styles.form}>
-//                     <Field label="Full name" value={name} onChange={setName} error={errors.name} placeholder="Alex Martin" />
-//                     <Field label="Email" type="email" value={email} onChange={setEmail} error={errors.email} placeholder="you@example.com" />
-//                     <Field
-//                         label="Password"
-//                         type="password"
-//                         value={password}
-//                         onChange={setPassword}
-//                         error={errors.password}
-//                         placeholder="••••••••"
-//                         showToggle
-//                         showValue={showPw}
-//                         onToggle={() => setShowPw((s) => !s)}
-//                     />
-//                     <Field
-//                         label="Confirm password"
-//                         type="password"
-//                         value={confirm}
-//                         onChange={setConfirm}
-//                         error={errors.confirm}
-//                         placeholder="••••••••"
-//                         showToggle
-//                         showValue={showCpw}
-//                         onToggle={() => setShowCpw((s) => !s)}
-//                     />
-//
-//                     <TouchableOpacity onPress={onSubmit} disabled={loading} style={[styles.button, loading && { opacity: 0.7 }]}>
-//                         {loading ? (
-//                             <ActivityIndicator color="#fff" />
-//                         ) : (
-//                             <Text style={styles.buttonText}>Create account</Text>
-//                         )}
-//                     </TouchableOpacity>
-//                 </View>
-//
-//                 <Text style={styles.footerText}>
-//                     Already have an account?{" "}
-//                     <Link href="/auth/login" style={styles.linkText}>
-//                         Login
-//                     </Link>
-//                 </Text>
-//                 {error && <Text style={[styles.error, { textAlign: "center", marginTop: 12 }]}>{error}</Text>}
-//             </View>
-//         </ScrollView>
-//     );
-// }
-// const styles = StyleSheet.create({
-//     container: { flexGrow: 1, justifyContent: "center", backgroundColor: "#0f172a", padding: 20 },
-//     card: { backgroundColor: "#1e293b", borderRadius: 16, padding: 24 },
-//     title: { fontSize: 22, fontWeight: "800", color: "#f1f5f9" },
-//     subtitle: { marginTop: 4, fontSize: 13, color: "#94a3b8", marginBottom: 24 },
-//     form: { gap: 16 },
-//     label: { fontSize: 12, fontWeight: "600", color: "#f1f5f9", marginBottom: 6 },
-//     inputWrapper: { position: "relative" },
-//     input: { height: 48, borderWidth: 1, borderColor: "#334155", borderRadius: 8, paddingHorizontal: 12, fontSize: 14, color: "#f1f5f9", backgroundColor: "#0f172a" },
-//     eyeButton: { position: "absolute", right: 10, top: 12 },
-//     eyeText: { fontSize: 16 },
-//     error: { marginTop: 4, fontSize: 12, color: "#ef4444" },
-//     button: { height: 52, backgroundColor: "#3b82f6", borderRadius: 8, justifyContent: "center", alignItems: "center", marginTop: 8 },
-//     buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-//     footerText: { marginTop: 24, textAlign: "center", fontSize: 13, color: "#94a3b8" },
-//     linkText: { fontWeight: "600", color: "#3b82f6" },
-// });

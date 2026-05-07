@@ -13,4 +13,6 @@ public interface TrainingProgramService {
     List<TrainingProgram> findByStartDateBetween(LocalDate startDate, LocalDate endDate);
     TrainingProgram update(TrainingProgram trainingProgram);
     TrainingProgram findById(Long id);
+    List<TrainingProgram> findByUserEmail(String email);
+    TrainingProgram findActiveByUserEmail(String email);
 }

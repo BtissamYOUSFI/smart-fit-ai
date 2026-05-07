@@ -4,7 +4,6 @@ import fit.smart.smartfitapi.entity.TrainingProgram;
 import fit.smart.smartfitapi.repository.TrainingProgramRepository;
 import fit.smart.smartfitapi.service.facade.TrainingProgramService;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,12 +13,21 @@ import java.util.List;
 @AllArgsConstructor
 @Service
 public class TrainingProgramServiceImpl implements TrainingProgramService {
+
+    private final TrainingProgramRepository repository;
+
     @Override
-    public TrainingProgram save(TrainingProgram trainingProgram) {
-        if (repository.findByTitle(trainingProgram.getTitle()) != null) {
+    public TrainingProgram save(TrainingProgram program) {
+        Long excludeId = program.getId() != null ? program.getId() : -1L;
+        if (program.getUser() != null &&
+                repository.existsOverlappingProgram(
+                        program.getUser().getEmail(),
+                        program.getStartDate(),
+                        program.getEndDate(),
+                        excludeId)) {
             return null;
         }
-        return repository.save(trainingProgram);
+        return repository.save(program);
     }
 
     @Override
@@ -30,7 +38,9 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        repository.deleteById(id);
+        // Use find + delete (not deleteById) so JPA cascade fires through em.remove(),
+        // which deletes the entire child tree in the correct FK order.
+        repository.findById(id).ifPresent(repository::delete);
     }
 
     @Override
@@ -44,8 +54,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     }
 
     @Override
-    public TrainingProgram update(TrainingProgram trainingProgram) {
-        return repository.save(trainingProgram);
+    public TrainingProgram update(TrainingProgram program) {
+        return repository.save(program);
     }
 
     @Override
@@ -53,5 +63,14 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         return repository.findById(id).orElse(null);
     }
 
-    private final TrainingProgramRepository repository;
+    @Override
+    public List<TrainingProgram> findByUserEmail(String email) {
+        return repository.findByUserEmail(email);
+    }
+
+    @Override
+    public TrainingProgram findActiveByUserEmail(String email) {
+        List<TrainingProgram> active = repository.findActiveByUserEmail(email, LocalDate.now());
+        return active.isEmpty() ? null : active.get(0);
+    }
 }

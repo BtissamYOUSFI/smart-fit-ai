@@ -3,6 +3,8 @@ package fit.smart.smartfitapi.entity;
 import fit.smart.smartfitapi.util.enums.ExerciseType;
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "exercises")
@@ -22,9 +24,10 @@ public class Exercise {
     private ExerciseType exerciseType;
 
     @Column(nullable = false)
-    private Integer plannedReps;
+    private Integer plannedSets;
 
-    private Integer performedReps;
+    @Column(nullable = false)
+    private Integer plannedRepsPerSet;
 
     private Double score;
 
@@ -35,13 +38,20 @@ public class Exercise {
     @JoinColumn(name = "session_id", nullable = false)
     private Session session;
 
-    @OneToOne(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private VideoCapture videoCapture;
+    @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<ExerciseRep> reps = new ArrayList<>();
 
-    @OneToOne(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private AnalysisResult analysisResult;
+    public void computeScore() {
+        this.score = reps.stream()
+                .map(ExerciseRep::getAnalysisResult)
+                .filter(ar -> ar != null && ar.getGlobalScore() != null)
+                .mapToDouble(AnalysisResult::getGlobalScore)
+                .average()
+                .orElse(0.0);
+    }
 
     public boolean isAnalyzed() {
-        return analysisResult != null;
+        return reps.stream().anyMatch(r -> r.getAnalysisResult() != null);
     }
 }

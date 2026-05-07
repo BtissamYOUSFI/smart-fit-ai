@@ -7,22 +7,44 @@ import fit.smart.smartfitapi.ws.dto.TrainingProgramDto;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor
 @RestController
 @RequestMapping("/api/training-program/")
 public class TrainingProgramController {
-    
+
+    private final TrainingProgramService service;
+    private final TrainingProgramConverter converter;
+
+    /** Programs belonging to the authenticated user. */
+    @GetMapping("my")
+    public ResponseEntity<List<TrainingProgramDto>> findMine(Authentication auth) {
+        List<TrainingProgram> list = service.findByUserEmail(auth.getName());
+        if (list.isEmpty()) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(converter.toDtos(list));
+    }
+
+    /** Active program (today falls within its period) for the authenticated user. */
+    @GetMapping("my/active")
+    public ResponseEntity<TrainingProgramDto> findActiveProgram(Authentication auth) {
+        TrainingProgram program = service.findActiveByUserEmail(auth.getName());
+        if (program == null) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(converter.toDto(program));
+    }
+
     @PostMapping("add-one")
-    public ResponseEntity<TrainingProgramDto> save(@RequestBody TrainingProgramDto trainingProgram) {
-        TrainingProgram entity = converter.toEntity(trainingProgram);
+    public ResponseEntity<?> save(@RequestBody TrainingProgramDto dto) {
+        TrainingProgram entity = converter.toEntity(dto);
         TrainingProgram saved = service.save(entity);
         if (saved == null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "You already have a program during this period. Programs cannot overlap."));
         }
         return ResponseEntity.ok(converter.toDto(saved));
     }
@@ -30,54 +52,43 @@ public class TrainingProgramController {
     @GetMapping("all")
     public ResponseEntity<List<TrainingProgramDto>> findAll() {
         List<TrainingProgram> list = service.findAll();
-        if (list.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
+        if (list.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(converter.toDtos(list));
     }
 
     @DeleteMapping("id/{id}")
-    public void deleteById(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteById(@PathVariable Long id) {
         service.deleteById(id);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("title/{title}")
     public ResponseEntity<TrainingProgramDto> findByTitle(@PathVariable String title) {
         TrainingProgram entity = service.findByTitle(title);
-        if (entity == null) {
-            return ResponseEntity.notFound().build();
-        }
+        if (entity == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(converter.toDto(entity));
     }
 
     @GetMapping("start-date/{startDate}/end-date/{endDate}")
-    public ResponseEntity<List<TrainingProgramDto>> findByStartDateBetween(@PathVariable LocalDate startDate,@PathVariable LocalDate endDate) {
-        List<TrainingProgram> list = service.findByStartDateBetween(startDate,endDate);
-        if (list.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
+    public ResponseEntity<List<TrainingProgramDto>> findByStartDateBetween(
+            @PathVariable LocalDate startDate, @PathVariable LocalDate endDate) {
+        List<TrainingProgram> list = service.findByStartDateBetween(startDate, endDate);
+        if (list.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(converter.toDtos(list));
     }
 
     @PutMapping("update")
-    public ResponseEntity<TrainingProgramDto> update(@RequestBody TrainingProgramDto trainingProgram) {
-        TrainingProgram entity = converter.toEntity(trainingProgram);
+    public ResponseEntity<?> update(@RequestBody TrainingProgramDto dto) {
+        TrainingProgram entity = converter.toEntity(dto);
         TrainingProgram updated = service.update(entity);
-        if (updated == null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
+        if (updated == null) return ResponseEntity.status(HttpStatus.CONFLICT).build();
         return ResponseEntity.ok(converter.toDto(updated));
     }
 
     @GetMapping("id/{id}")
     public ResponseEntity<TrainingProgramDto> findById(@PathVariable Long id) {
         TrainingProgram entity = service.findById(id);
-        if (entity == null) {
-            return ResponseEntity.notFound().build();
-        }
+        if (entity == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(converter.toDto(entity));
     }
-
-    private final TrainingProgramService service;
-    private final TrainingProgramConverter converter;
 }

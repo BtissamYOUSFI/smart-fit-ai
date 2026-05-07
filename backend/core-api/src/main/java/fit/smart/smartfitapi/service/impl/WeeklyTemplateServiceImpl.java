@@ -42,9 +42,6 @@ public class WeeklyTemplateServiceImpl implements WeeklyTemplateService {
 
     @Override
     public WeeklyTemplate save(WeeklyTemplate weeklyTemplate) {
-        if (this.findByLabel(weeklyTemplate.getLabel()) != null) {
-            return null;
-        }
         return repository.save(weeklyTemplate);
     }
 

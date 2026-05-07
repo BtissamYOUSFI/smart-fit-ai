@@ -1,41 +1,35 @@
 import { useState, useEffect, useCallback } from "react";
 import {
     View, Text, ScrollView, TouchableOpacity,
-    Switch, StyleSheet, ActivityIndicator, Alert, TextInput, Modal
+    Switch, StyleSheet, ActivityIndicator, Alert, TextInput, Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/context/ThemeContext";
 import { useAuth } from "@/app/context/AuthContext";
-import {tokenStorage} from "@/utils/tokenStorage";
-import {User} from "@/app/shared/model";
-
+import { tokenStorage } from "@/utils/tokenStorage";
+import { User } from "@/app/shared/model";
 import * as userService from "@/app/shared/service/userService";
-
 
 export default function Profile() {
     const router = useRouter();
     const { logout } = useAuth();
+    const { theme, isDark, toggleTheme } = useTheme();
+    const c = theme.colors;
 
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [push, setPush] = useState(true);
-    const [dark, setDark] = useState(false);
-
-    // Edit name modal state
+    const [user,        setUser]        = useState<User | null>(null);
+    const [loading,     setLoading]     = useState(true);
     const [editVisible, setEditVisible] = useState(false);
-    const [editField, setEditField] = useState<"name" | "email" | null>(null);
-    const [editValue, setEditValue] = useState("");
-    const [saving, setSaving] = useState(false);
+    const [editField,   setEditField]   = useState<"name" | "email" | null>(null);
+    const [editValue,   setEditValue]   = useState("");
+    const [saving,      setSaving]      = useState(false);
 
-    // ── Fetch user by stored email ──────────────────────────────────────────
+    // ── Fetch user ──────────────────────────────────────────────────────────
     const fetchUser = useCallback(async () => {
         try {
             setLoading(true);
-            console.log("TEEEEEST")
-
             const data = await userService.getAuthenticatedUser();
-            console.log(data)
             setUser(data);
-
         } catch (err) {
             Alert.alert("Error", "Could not load profile.");
         } finally {
@@ -43,27 +37,18 @@ export default function Profile() {
         }
     }, []);
 
-    useEffect(() => {
-        fetchUser();
-    }, [fetchUser]);
+    useEffect(() => { fetchUser(); }, [fetchUser]);
 
-    // ── Update user (PUT /api/user/update) ──────────────────────────────────
+    // ── Update user ─────────────────────────────────────────────────────────
     const handleEdit = async () => {
         if (!user) return;
-
         try {
             setSaving(true);
-
-            const updatedUser = {
-                ...user,
-                [editField!]: editValue
-            };
-
+            const updatedUser = { ...user, [editField!]: editValue };
             const res = await userService.updateUser(updatedUser);
             setUser(res);
-
             setEditVisible(false);
-        } catch (e) {
+        } catch {
             Alert.alert("Error", "Update failed");
         } finally {
             setSaving(false);
@@ -91,21 +76,24 @@ export default function Profile() {
         ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })
         : "—";
 
-    // ── Render ───────────────────────────────────────────────────────────────
+    // ── Loading state ────────────────────────────────────────────────────────
     if (loading) {
         return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+            <View style={[s.centered, { backgroundColor: c.background }]}>
+                <ActivityIndicator size="large" color={c.accent} />
             </View>
         );
     }
 
     if (!user) {
         return (
-            <View style={styles.centered}>
-                <Text style={styles.errorText}>Failed to load profile.</Text>
-                <TouchableOpacity onPress={fetchUser} style={styles.retryBtn}>
-                    <Text style={styles.retryText}>Retry</Text>
+            <View style={[s.centered, { backgroundColor: c.background }]}>
+                <Text style={[s.errorText, { color: c.text }]}>Failed to load profile.</Text>
+                <TouchableOpacity
+                    onPress={fetchUser}
+                    style={[s.retryBtn, { backgroundColor: c.accent }]}
+                >
+                    <Text style={[s.retryText, { color: c.accentFg }]}>Retry</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -113,115 +101,180 @@ export default function Profile() {
 
     return (
         <>
-            <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{initials(user.name)}</Text>
+            <ScrollView
+                style={[s.root, { backgroundColor: c.background }]}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 40 }}
+            >
+                {/* ── Profile header ── */}
+                <View style={[s.header, { backgroundColor: c.background }]}>
+                    <View style={[s.avatar, { backgroundColor: c.accent }]}>
+                        <Text style={[s.avatarText, { color: c.accentFg }]}>
+                            {initials(user.name)}
+                        </Text>
                     </View>
-                    <Text style={styles.name}>{user.name}</Text>
-                    <Text style={styles.email}>{user.email}</Text>
-                    <Text style={styles.joinedText}>Member since {joinedDate}</Text>
+                    <Text style={[s.name, { color: c.text }]}>{user.name}</Text>
+                    <Text style={[s.email, { color: c.textSecondary }]}>{user.email}</Text>
+                    <Text style={[s.joinedText, { color: c.textMuted }]}>
+                        Member since {joinedDate}
+                    </Text>
                 </View>
 
-                {/* Stats */}
-                <View style={styles.statsRow}>
+                {/* ── Stats row ── */}
+                <View style={s.statsRow}>
                     {[
                         { v: String(programCount), l: "Programs" },
-                        { v: "—", l: "Sessions" },
-                        { v: "—", l: "Avg Score" },
-                    ].map((s) => (
-                        <View key={s.l} style={styles.statCard}>
-                            <Text style={styles.statValue}>{s.v}</Text>
-                            <Text style={styles.statLabel}>{s.l}</Text>
+                        { v: "—",                  l: "Sessions"  },
+                        { v: "—",                  l: "Avg Score" },
+                    ].map((stat) => (
+                        <View key={stat.l} style={[s.statCard, { backgroundColor: c.surface }]}>
+                            <Text style={[s.statValue, { color: c.text }]}>{stat.v}</Text>
+                            <Text style={[s.statLabel, { color: c.textMuted }]}>{stat.l}</Text>
                         </View>
                     ))}
                 </View>
 
-                {/* Personal info */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>PERSONAL INFO</Text>
-                    <View style={styles.card}>
+                {/* ── Account section ── */}
+                <View style={s.section}>
+                    <Text style={[s.sectionTitle, { color: c.textMuted }]}>ACCOUNT</Text>
+                    <View style={[s.card, { backgroundColor: c.surface }]}>
                         {(["name", "email"] as const).map((field, i, arr) => (
-                            <View key={field} style={[styles.row, i < arr.length - 1 && styles.rowBorder]}>
-                                <View>
-                                    <Text style={styles.rowLabel}>{field.toUpperCase()}</Text>
-                                    <Text style={styles.rowValue}>
+                            <View
+                                key={field}
+                                style={[
+                                    s.row,
+                                    i < arr.length - 1 && [s.rowBorder, { borderBottomColor: c.border }],
+                                ]}
+                            >
+                                <View style={s.rowTextGroup}>
+                                    <Text style={[s.rowLabel, { color: c.textMuted }]}>
+                                        {field.toUpperCase()}
+                                    </Text>
+                                    <Text style={[s.rowValue, { color: c.text }]}>
                                         {field === "name" ? user.name : user.email}
                                     </Text>
                                 </View>
-                                <TouchableOpacity onPress={() => openEdit(field)}>
-                                    <Text style={styles.editIcon}>✏️</Text>
+                                <TouchableOpacity
+                                    onPress={() => openEdit(field)}
+                                    style={[s.editBtn, { backgroundColor: c.surfaceElevated }]}
+                                >
+                                    <Ionicons name="pencil-outline" size={15} color={c.textSecondary} />
                                 </TouchableOpacity>
                             </View>
                         ))}
                     </View>
                 </View>
 
-                {/* Security */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>SECURITY</Text>
-                    <TouchableOpacity style={[styles.card, styles.row]}>
-                        <Text style={styles.rowValue}>Change password</Text>
-                        <Text style={{ color: "#64748b" }}>›</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Preferences */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>PREFERENCES</Text>
-                    <View style={styles.card}>
-                        <View style={[styles.row, styles.rowBorder]}>
-                            <Text style={styles.rowValue}>Push notifications</Text>
-                            <Switch value={push} onValueChange={setPush} trackColor={{ true: "#3b82f6" }} />
-                        </View>
-                        <View style={styles.row}>
-                            <Text style={styles.rowValue}>Dark mode</Text>
-                            <Switch value={dark} onValueChange={setDark} trackColor={{ true: "#3b82f6" }} />
+                {/* ── Preferences section ── */}
+                <View style={s.section}>
+                    <Text style={[s.sectionTitle, { color: c.textMuted }]}>PREFERENCES</Text>
+                    <View style={[s.card, { backgroundColor: c.surface }]}>
+                        {/* Theme toggle */}
+                        <View style={s.row}>
+                            <View style={s.rowLeft}>
+                                <Ionicons
+                                    name={isDark ? "moon" : "sunny"}
+                                    size={18}
+                                    color={isDark ? c.blue : c.warning}
+                                    style={{ marginRight: 12 }}
+                                />
+                                <View>
+                                    <Text style={[s.rowValue, { color: c.text }]}>Appearance</Text>
+                                    <Text style={[s.rowSubValue, { color: c.textMuted }]}>
+                                        {isDark ? "Dark" : "Light"}
+                                    </Text>
+                                </View>
+                            </View>
+                            <Switch
+                                value={isDark}
+                                onValueChange={toggleTheme}
+                                trackColor={{ false: c.border, true: c.accent }}
+                                thumbColor={c.accentFg}
+                            />
                         </View>
                     </View>
                 </View>
 
-                {/* Logout */}
-                <View style={[styles.section, { marginBottom: 40 }]}>
-                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                        <Text style={styles.logoutText}>🚪  Log out</Text>
+                {/* ── Security section ── */}
+                <View style={s.section}>
+                    <Text style={[s.sectionTitle, { color: c.textMuted }]}>SECURITY</Text>
+                    <TouchableOpacity style={[s.card, s.row, { backgroundColor: c.surface }]}>
+                        <View style={s.rowLeft}>
+                            <Ionicons
+                                name="lock-closed-outline"
+                                size={18}
+                                color={c.textSecondary}
+                                style={{ marginRight: 12 }}
+                            />
+                            <Text style={[s.rowValue, { color: c.text }]}>Change password</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* ── Logout ── */}
+                <View style={[s.section, { marginTop: 32 }]}>
+                    <TouchableOpacity
+                        style={[s.logoutButton, { backgroundColor: c.errorBg, borderColor: c.error }]}
+                        onPress={handleLogout}
+                    >
+                        <Ionicons
+                            name="log-out-outline"
+                            size={18}
+                            color={c.error}
+                            style={{ marginRight: 8 }}
+                        />
+                        <Text style={[s.logoutText, { color: c.error }]}>Log out</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
 
-            {/* Edit Modal */}
+            {/* ── Edit modal ── */}
             <Modal visible={editVisible} transparent animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>
+                <View style={[s.modalOverlay, { backgroundColor: c.overlay }]}>
+                    <View style={[s.modalCard, { backgroundColor: c.surface }]}>
+                        <Text style={[s.modalTitle, { color: c.text }]}>
                             Edit {editField === "name" ? "Name" : "Email"}
                         </Text>
                         <TextInput
-                            style={styles.modalInput}
+                            style={[
+                                s.modalInput,
+                                {
+                                    backgroundColor: c.inputBg,
+                                    borderColor: c.border,
+                                    color: c.text,
+                                },
+                            ]}
                             value={editValue}
                             onChangeText={setEditValue}
                             autoCapitalize={editField === "name" ? "words" : "none"}
                             keyboardType={editField === "email" ? "email-address" : "default"}
                             autoFocus
-                            placeholderTextColor="#64748b"
+                            placeholderTextColor={c.placeholder}
                         />
-                        <View style={styles.modalActions}>
+                        <View style={s.modalActions}>
                             <TouchableOpacity
-                                style={styles.modalCancel}
+                                style={[s.modalCancel, { borderColor: c.border }]}
                                 onPress={() => setEditVisible(false)}
                                 disabled={saving}
                             >
-                                <Text style={styles.modalCancelText}>Cancel</Text>
+                                <Text style={[s.modalCancelText, { color: c.textSecondary }]}>
+                                    Cancel
+                                </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={styles.modalSave}
+                                style={[
+                                    s.modalSave,
+                                    { backgroundColor: c.accent },
+                                    (saving || editValue.trim() === "") && { opacity: 0.5 },
+                                ]}
                                 onPress={handleEdit}
                                 disabled={saving || editValue.trim() === ""}
                             >
                                 {saving
-                                    ? <ActivityIndicator size="small" color="#fff" />
-                                    : <Text style={styles.modalSaveText}>Save</Text>}
+                                    ? <ActivityIndicator size="small" color={c.accentFg} />
+                                    : <Text style={[s.modalSaveText, { color: c.accentFg }]}>Save</Text>
+                                }
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -231,48 +284,63 @@ export default function Profile() {
     );
 }
 
-const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: "#0f172a" },
-    centered: { flex: 1, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center" },
-    errorText: { color: "#f1f5f9", fontSize: 14, marginBottom: 12 },
-    retryBtn: { backgroundColor: "#3b82f6", paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
-    retryText: { color: "#fff", fontWeight: "600" },
+// ─── Styles (layout only — colors injected inline) ────────────────────────────
 
-    header: { alignItems: "center", backgroundColor: "#0f172a", paddingTop: 56, paddingBottom: 32 },
-    avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: "#3b82f6", alignItems: "center", justifyContent: "center" },
-    avatarText: { fontSize: 24, fontWeight: "800", color: "#fff" },
-    name: { marginTop: 12, fontSize: 20, fontWeight: "700", color: "#fff" },
-    email: { fontSize: 13, color: "rgba(255,255,255,0.6)" },
-    joinedText: { fontSize: 11, color: "#475569", marginTop: 4 },
+const s = StyleSheet.create({
+    root:    { flex: 1 },
+    centered:{ flex: 1, alignItems: "center", justifyContent: "center" },
+    errorText:{ fontSize: 14, marginBottom: 12 },
+    retryBtn: { paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
+    retryText:{ fontWeight: "600" },
 
-    statsRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, marginTop: -16 },
-    statCard: { flex: 1, backgroundColor: "#1e293b", borderRadius: 12, padding: 12, alignItems: "center" },
-    statValue: { fontSize: 18, fontWeight: "800", color: "#f1f5f9" },
-    statLabel: { fontSize: 10, fontWeight: "600", color: "#64748b", textTransform: "uppercase", marginTop: 2 },
+    // Header
+    header:     { alignItems: "center", paddingTop: 60, paddingBottom: 28 },
+    avatar:     { width: 84, height: 84, borderRadius: 42, alignItems: "center", justifyContent: "center" },
+    avatarText: { fontSize: 26, fontWeight: "800" },
+    name:       { marginTop: 14, fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
+    email:      { fontSize: 13, marginTop: 3 },
+    joinedText: { fontSize: 11, marginTop: 5 },
 
-    section: { marginTop: 20, paddingHorizontal: 16 },
-    sectionTitle: { fontSize: 10, fontWeight: "700", color: "#64748b", letterSpacing: 1, marginBottom: 8 },
-    card: { backgroundColor: "#1e293b", borderRadius: 16, overflow: "hidden" },
-    row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 },
-    rowBorder: { borderBottomWidth: 1, borderBottomColor: "#334155" },
-    rowLabel: { fontSize: 10, fontWeight: "600", color: "#64748b", textTransform: "uppercase" },
-    rowValue: { fontSize: 14, fontWeight: "600", color: "#f1f5f9" },
-    editIcon: { fontSize: 14 },
+    // Stats
+    statsRow: { flexDirection: "row", gap: 8, paddingHorizontal: 16, marginBottom: 4 },
+    statCard: { flex: 1, borderRadius: 14, padding: 14, alignItems: "center" },
+    statValue:{ fontSize: 20, fontWeight: "800" },
+    statLabel:{ fontSize: 10, fontWeight: "700", textTransform: "uppercase", marginTop: 3, letterSpacing: 0.5 },
 
-    logoutButton: { height: 52, backgroundColor: "#ef4444", borderRadius: 8, alignItems: "center", justifyContent: "center" },
-    logoutText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+    // Section
+    section:      { marginTop: 22, paddingHorizontal: 16 },
+    sectionTitle: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 8 },
+    card:         { borderRadius: 16, overflow: "hidden" },
+
+    // Rows
+    row:          { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16 },
+    rowLeft:      { flexDirection: "row", alignItems: "center", flex: 1 },
+    rowBorder:    { borderBottomWidth: StyleSheet.hairlineWidth },
+    rowTextGroup: { flex: 1 },
+    rowLabel:     { fontSize: 10, fontWeight: "600", textTransform: "uppercase", marginBottom: 3 },
+    rowValue:     { fontSize: 14, fontWeight: "600" },
+    rowSubValue:  { fontSize: 11, marginTop: 1 },
+    editBtn:      { width: 32, height: 32, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+
+    // Logout
+    logoutButton: { height: 52, borderRadius: 12, alignItems: "center",
+                    justifyContent: "center", flexDirection: "row",
+                    borderWidth: StyleSheet.hairlineWidth },
+    logoutText:   { fontSize: 15, fontWeight: "700" },
 
     // Modal
-    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", alignItems: "center", justifyContent: "center" },
-    modalCard: { backgroundColor: "#1e293b", borderRadius: 16, padding: 24, width: "85%" },
-    modalTitle: { fontSize: 16, fontWeight: "700", color: "#f1f5f9", marginBottom: 16 },
-    modalInput: {
-        backgroundColor: "#0f172a", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-        color: "#f1f5f9", fontSize: 14, borderWidth: 1, borderColor: "#334155", marginBottom: 20,
+    modalOverlay: { flex: 1, alignItems: "center", justifyContent: "center" },
+    modalCard:    { borderRadius: 20, padding: 24, width: "85%" },
+    modalTitle:   { fontSize: 17, fontWeight: "700", marginBottom: 16 },
+    modalInput:   {
+        borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13,
+        fontSize: 14, borderWidth: 1, marginBottom: 20,
     },
-    modalActions: { flexDirection: "row", gap: 12 },
-    modalCancel: { flex: 1, height: 44, borderRadius: 8, borderWidth: 1, borderColor: "#334155", alignItems: "center", justifyContent: "center" },
-    modalCancelText: { color: "#94a3b8", fontWeight: "600" },
-    modalSave: { flex: 1, height: 44, borderRadius: 8, backgroundColor: "#3b82f6", alignItems: "center", justifyContent: "center" },
-    modalSaveText: { color: "#fff", fontWeight: "600" },
+    modalActions:     { flexDirection: "row", gap: 12 },
+    modalCancel:      { flex: 1, height: 46, borderRadius: 10, borderWidth: 1,
+                        alignItems: "center", justifyContent: "center" },
+    modalCancelText:  { fontWeight: "600" },
+    modalSave:        { flex: 1, height: 46, borderRadius: 10,
+                        alignItems: "center", justifyContent: "center" },
+    modalSaveText:    { fontWeight: "700" },
 });

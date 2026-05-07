@@ -1,15 +1,13 @@
 import { ExerciseType } from "./ExerciseTemplate";
-import { AnalysisResult } from "./AnalysisResult";
-import { VideoCapture } from "./VideoCapture";
+import { ExerciseRep } from "./ExerciseRep";
 
 export interface Exercise {
   id: number;
   exerciseType: ExerciseType;
-  plannedReps: number;
-  performedReps: number;
-  score: number;
+  plannedSets: number;
+  plannedRepsPerSet: number;
+  score: number | null;
   orderInSession: number;
   sessionId: number;
-  analysisResult: AnalysisResult;
-  videoCapture: VideoCapture;
+  reps: ExerciseRep[];
 }

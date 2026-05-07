@@ -1,7 +1,9 @@
 package fit.smart.smartfitapi.ws.converter;
 
+import fit.smart.smartfitapi.entity.AnalysisError;
 import fit.smart.smartfitapi.entity.AnalysisResult;
-import fit.smart.smartfitapi.entity.Exercise;
+import fit.smart.smartfitapi.entity.ExerciseRep;
+import fit.smart.smartfitapi.ws.dto.AnalysisErrorDto;
 import fit.smart.smartfitapi.ws.dto.AnalysisResultDto;
 import org.springframework.stereotype.Component;
 
@@ -12,105 +14,84 @@ import java.util.List;
 public class AnalysisResultConverter {
 
     public AnalysisResultDto toDto(AnalysisResult entity) {
-        if (entity == null) {
-            return null;
-        }
+        if (entity == null) return null;
         AnalysisResultDto dto = new AnalysisResultDto();
-        if (entity.getId() != null) {
-            dto.setId(entity.getId());
+        dto.setId(entity.getId());
+        dto.setGlobalScore(entity.getGlobalScore());
+        dto.setExerciseName(entity.getExerciseName());
+        dto.setFramesAnalyzed(entity.getFramesAnalyzed());
+        dto.setAnalyzedAt(entity.getAnalyzedAt());
+        if (entity.getExerciseRep() != null) {
+            dto.setExerciseRepId(entity.getExerciseRep().getId());
         }
-        if (entity.getAvgKneeAngle() != null) {
-            dto.setAvgKneeAngle(entity.getAvgKneeAngle());
-        }
-        if (entity.getAvgHipAngle() != null) {
-            dto.setAvgHipAngle(entity.getAvgHipAngle());
-        }
-        if (entity.getAvgBackAngle() != null) {
-            dto.setAvgBackAngle(entity.getAvgBackAngle());
-        }
-        if (entity.getStabilityScore() != null) {
-            dto.setStabilityScore(entity.getStabilityScore());
-        }
-        if (entity.getAmplitudeScore() != null) {
-            dto.setAmplitudeScore(entity.getAmplitudeScore());
-        }
-        if (entity.getDetectedErrors() != null && !entity.getDetectedErrors().isEmpty()) {
-            dto.setDetectedErrors(new ArrayList<>(entity.getDetectedErrors()));
+        if (entity.getErrors() != null) {
+            List<AnalysisErrorDto> errorDtos = new ArrayList<>();
+            for (AnalysisError e : entity.getErrors()) {
+                AnalysisErrorDto ed = new AnalysisErrorDto();
+                ed.setJoint(e.getJoint());
+                ed.setOccurrences(e.getOccurrences());
+                ed.setAvgAngle(e.getAvgAngle());
+                ed.setWorstAngle(e.getWorstAngle());
+                ed.setRange(e.getRangeMin() != null && e.getRangeMax() != null
+                        ? List.of(e.getRangeMin(), e.getRangeMax()) : List.of());
+                ed.setMessage(e.getMessage());
+                errorDtos.add(ed);
+            }
+            dto.setErrors(errorDtos);
         }
         if (entity.getFeedback() != null) {
-            dto.setFeedback(entity.getFeedback());
-        }
-        if (entity.getAnalyzedAt() != null) {
-            dto.setAnalyzedAt(entity.getAnalyzedAt());
-        }
-        dto.setGlobalScore(entity.getGlobalScore());
-        if (entity.getExercise() != null && entity.getExercise().getId() != null) {
-            dto.setExerciseId(entity.getExercise().getId());
+            dto.setFeedback(new ArrayList<>(entity.getFeedback()));
         }
         return dto;
     }
 
-    public AnalysisResult toEntity(AnalysisResultDto dto) {
-        if (dto == null) {
-            return null;
-        }
-        AnalysisResult entity = new AnalysisResult();
-        if (dto.getId() != null) {
-            entity.setId(dto.getId());
-        }
-        if (dto.getAvgKneeAngle() != null) {
-            entity.setAvgKneeAngle(dto.getAvgKneeAngle());
-        }
-        if (dto.getAvgHipAngle() != null) {
-            entity.setAvgHipAngle(dto.getAvgHipAngle());
-        }
-        if (dto.getAvgBackAngle() != null) {
-            entity.setAvgBackAngle(dto.getAvgBackAngle());
-        }
-        if (dto.getStabilityScore() != null) {
-            entity.setStabilityScore(dto.getStabilityScore());
-        }
-        if (dto.getAmplitudeScore() != null) {
-            entity.setAmplitudeScore(dto.getAmplitudeScore());
-        }
-        if (dto.getDetectedErrors() != null && !dto.getDetectedErrors().isEmpty()) {
-            entity.setDetectedErrors(new ArrayList<>(dto.getDetectedErrors()));
-        }
-        if (dto.getFeedback() != null) {
-            entity.setFeedback(dto.getFeedback());
-        }
-        if (dto.getAnalyzedAt() != null) {
-            entity.setAnalyzedAt(dto.getAnalyzedAt());
-        }
-        if (dto.getExerciseId() != null) {
-            Exercise exercise = new Exercise();
-            exercise.setId(dto.getExerciseId());
-            entity.setExercise(exercise);
-        }
-        return entity;
-    }
-
     public List<AnalysisResultDto> toDtos(List<AnalysisResult> entities) {
-        if (entities == null) {
-            return null;
-        }
+        if (entities == null) return null;
         List<AnalysisResultDto> dtos = new ArrayList<>();
-        for (AnalysisResult entity : entities) {
-            dtos.add(toDto(entity));
-        }
+        for (AnalysisResult e : entities) dtos.add(toDto(e));
         return dtos;
     }
 
     public List<AnalysisResult> toEntities(List<AnalysisResultDto> dtos) {
-        if (dtos == null) {
-            return null;
-        }
+        if (dtos == null) return null;
         List<AnalysisResult> entities = new ArrayList<>();
-        for (AnalysisResultDto dto : dtos) {
-            entities.add(toEntity(dto));
-        }
+        for (AnalysisResultDto dto : dtos) entities.add(toEntity(dto));
         return entities;
     }
 
+    public AnalysisResult toEntity(AnalysisResultDto dto) {
+        if (dto == null) return null;
+        AnalysisResult entity = new AnalysisResult();
+        entity.setId(dto.getId());
+        entity.setGlobalScore(dto.getGlobalScore());
+        entity.setExerciseName(dto.getExerciseName());
+        entity.setFramesAnalyzed(dto.getFramesAnalyzed());
+        entity.setAnalyzedAt(dto.getAnalyzedAt());
+        if (dto.getExerciseRepId() != null) {
+            ExerciseRep rep = new ExerciseRep();
+            rep.setId(dto.getExerciseRepId());
+            entity.setExerciseRep(rep);
+        }
+        if (dto.getErrors() != null) {
+            List<AnalysisError> errors = new ArrayList<>();
+            for (AnalysisErrorDto ed : dto.getErrors()) {
+                AnalysisError e = new AnalysisError();
+                e.setJoint(ed.getJoint());
+                e.setOccurrences(ed.getOccurrences());
+                e.setAvgAngle(ed.getAvgAngle());
+                e.setWorstAngle(ed.getWorstAngle());
+                if (ed.getRange() != null && ed.getRange().size() >= 2) {
+                    e.setRangeMin(ed.getRange().get(0));
+                    e.setRangeMax(ed.getRange().get(1));
+                }
+                e.setMessage(ed.getMessage());
+                errors.add(e);
+            }
+            entity.setErrors(errors);
+        }
+        if (dto.getFeedback() != null) {
+            entity.setFeedback(new ArrayList<>(dto.getFeedback()));
+        }
+        return entity;
+    }
 }
-

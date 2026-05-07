@@ -30,8 +30,8 @@ public class VideoCapture {
     private LocalDateTime uploadedAt;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exercise_id", nullable = false)
-    private Exercise exercise;
+    @JoinColumn(name = "exercise_rep_id", nullable = false)
+    private ExerciseRep exerciseRep;
 
     @PrePersist
     protected void onUpload() {

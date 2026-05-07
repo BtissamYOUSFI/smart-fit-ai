@@ -3,6 +3,7 @@ package fit.smart.smartfitapi.service.impl;
 import fit.smart.smartfitapi.entity.Session;
 import fit.smart.smartfitapi.repository.SessionRepository;
 import fit.smart.smartfitapi.service.facade.SessionService;
+import fit.smart.smartfitapi.util.enums.SessionStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,15 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     public Session save(Session session) {
+        return repo.save(session);
+    }
+
+    @Override
+    public Session updateStatus(Long id, String status) {
+        Session session = repo.findById(id).orElse(null);
+        if (session == null) return null;
+        session.setStatus(SessionStatus.valueOf(status));
+        session.calculateGlobalScore();
         return repo.save(session);
     }
 

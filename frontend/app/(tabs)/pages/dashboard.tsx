@@ -1,467 +1,456 @@
-import { useMemo, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import {
+    View, Text, ScrollView, TouchableOpacity,
+    StyleSheet, ActivityIndicator, RefreshControl,
+} from "react-native";
 import { useRouter } from "expo-router";
-import { MobileShell } from "@/components/MobileShell";
-import { ScoreBadge } from "@/components/ScoreBadge";
-import { StatusBadge } from "@/components/StatusBadge";
-import { DayPill } from "@/components/DayPill";
-import { EmptyState } from "@/components/EmptyState";
-import { mockDashboard } from "@/mocks/dashboard";
-import { mockPrograms } from "@/mocks/programs";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/app/context/ThemeContext";
+import { getAuthenticatedUser } from "@/app/shared/service/userService";
+import { fetchActiveProgram } from "@/app/shared/service/trainingProgramApi";
+import { fetchOrGenerateWeek } from "@/app/shared/service/programWeekApi";
+import { User } from "@/app/shared/model/User";
+import { TrainingProgram } from "@/app/shared/model/TrainingProgram";
+import { ProgramWeek } from "@/app/shared/model/ProgramWeek";
+import { Session } from "@/app/shared/model/Session";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+type DayKey = typeof DAYS[number];
 
-const todayKey = (() => {
-    const i = new Date().getDay();
-    return DAYS[(i + 6) % 7];
-})();
+const DAY_OF_WEEK_TO_SHORT: Record<string, DayKey> = {
+    MONDAY: "Mon", TUESDAY: "Tue", WEDNESDAY: "Wed", THURSDAY: "Thu",
+    FRIDAY: "Fri", SATURDAY: "Sat", SUNDAY: "Sun",
+};
 
-function getGreeting() {
+const EXERCISE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+    SQUAT:  "barbell",
+    PUSHUP: "body",
+    BICEP:  "fitness",
+    PLANK:  "remove",
+};
+
+function todayDayKey(): DayKey {
+    const i = new Date().getDay(); // 0 = Sun
+    return DAYS[(i + 6) % 7];     // shift so Mon = 0
+}
+
+function currentWeekNumber(program: TrainingProgram): number {
+    const start = new Date(program.startDate).getTime();
+    const now   = Date.now();
+    if (now < start) return 1;
+    const ms = 7 * 24 * 60 * 60 * 1000;
+    const totalWeeks = Math.ceil(
+        (new Date(program.endDate).getTime() - start) / ms
+    );
+    return Math.min(Math.ceil((now - start) / ms), totalWeeks);
+}
+
+function greeting(): string {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
     if (h < 18) return "Good afternoon";
     return "Good evening";
 }
 
+function scoreColor(score: number, c: ReturnType<typeof useTheme>["theme"]["colors"]) {
+    if (score >= 75) return c.success;
+    if (score >= 50) return c.warning;
+    return c.error;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function Dashboard() {
     const router = useRouter();
-    const [day, setDay] = useState<typeof DAYS[number]>(todayKey);
+    const { theme, isDark } = useTheme();
+    const c = theme.colors;
 
-    const session = useMemo(() => {
-        const program = mockPrograms.find((p) => p.status === "Active");
-        const week = program?.weeks[0];
-        return week?.sessions.find((s) => s.day === day);
-    }, [day]);
+    const [user,        setUser]        = useState<User | null>(null);
+    const [program,     setProgram]     = useState<TrainingProgram | null>(null);
+    const [week,        setWeek]        = useState<ProgramWeek | null>(null);
+    const [loading,     setLoading]     = useState(true);
+    const [refreshing,  setRefreshing]  = useState(false);
+    const [selectedDay, setSelectedDay] = useState<DayKey>(todayDayKey());
 
-    const kpis = [
-        { label: "Today's Score", value: mockDashboard.todayScore.toFixed(1), trend: mockDashboard.todayTrend },
-        { label: "Weekly Avg",    value: mockDashboard.weeklyAvg.toFixed(1),  trend: mockDashboard.weeklyTrend },
-        { label: "Total Sessions",value: String(mockDashboard.totalSessions), trend: mockDashboard.totalTrend },
-    ];
+    const load = useCallback(async (isRefresh = false) => {
+        try {
+            isRefresh ? setRefreshing(true) : setLoading(true);
+
+            const [userData, activeProgram] = await Promise.all([
+                getAuthenticatedUser(),
+                fetchActiveProgram(),
+            ]);
+            setUser(userData);
+            setProgram(activeProgram);
+
+            if (activeProgram) {
+                const weekNum = currentWeekNumber(activeProgram);
+                const weekData = await fetchOrGenerateWeek(activeProgram.id, weekNum);
+                setWeek(weekData);
+            }
+        } catch {
+            // silently degrade — UI handles null states
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
+
+    useEffect(() => { load(); }, [load]);
+
+    // Compute KPIs from program week sessions
+    const allSessions: Session[] = week?.sessions ?? [];
+    const completedSessions = allSessions.filter(s => s.status === "COMPLETED");
+    const scoredSessions    = completedSessions.filter(s => s.globalScore != null);
+    const weeklyAvg = scoredSessions.length
+        ? Math.round(scoredSessions.reduce((acc, s) => acc + (s.globalScore ?? 0), 0) / scoredSessions.length)
+        : null;
+
+    const todaySession = allSessions.find(
+        s => DAY_OF_WEEK_TO_SHORT[s.dayOfWeek] === selectedDay
+    );
+
+    if (loading) {
+        return (
+            <View style={[s.centered, { backgroundColor: c.background }]}>
+                <ActivityIndicator size="large" color={c.accent} />
+            </View>
+        );
+    }
 
     return (
-        <MobileShell>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <View>
-                        <Text style={styles.greeting}>{getGreeting()},</Text>
-                        <Text style={styles.username}>Athlete</Text>
+        <ScrollView
+            style={[s.root, { backgroundColor: c.background }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={() => load(true)}
+                    tintColor={c.accent}
+                />
+            }
+        >
+            {/* ── Header ── */}
+            <View style={s.header}>
+                <View style={s.headerLeft}>
+                    <Text style={[s.greeting, { color: c.textMuted }]}>
+                        {greeting()},
+                    </Text>
+                    <Text style={[s.username, { color: c.text }]}>
+                        {user?.name ?? "Athlete"}
+                    </Text>
+                </View>
+                <TouchableOpacity
+                    style={[s.profileBtn, { backgroundColor: c.surfaceElevated }]}
+                    onPress={() => router.push("/(tabs)/pages/profile" as any)}
+                >
+                    <Ionicons name="person-circle-outline" size={26} color={c.text} />
+                </TouchableOpacity>
+            </View>
+
+            {/* ── KPI row ── */}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={s.kpiScroll}
+                contentContainerStyle={s.kpiContent}
+            >
+                {[
+                    { value: weeklyAvg != null ? String(weeklyAvg) : "—", label: "Weekly Avg" },
+                    { value: String(completedSessions.length),              label: "Sessions Done" },
+                    { value: program ? String(currentWeekNumber(program)) : "—", label: "Current Week" },
+                ].map((kpi) => (
+                    <View
+                        key={kpi.label}
+                        style={[s.kpiCard, { backgroundColor: c.surface }]}
+                    >
+                        <Text style={[s.kpiValue, { color: c.text }]}>{kpi.value}</Text>
+                        <Text style={[s.kpiLabel, { color: c.textMuted }]}>{kpi.label}</Text>
                     </View>
-                    <TouchableOpacity style={styles.bell}>
-                        <Text style={{ fontSize: 18 }}>🔔</Text>
+                ))}
+            </ScrollView>
+
+            {/* ── Day picker ── */}
+            <View style={s.section}>
+                <Text style={[s.sectionTitle, { color: c.textMuted }]}>THIS WEEK</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                    <View style={s.dayRow}>
+                        {DAYS.map((d) => {
+                            const hasSession = allSessions.some(
+                                se => DAY_OF_WEEK_TO_SHORT[se.dayOfWeek] === d
+                            );
+                            const active = d === selectedDay;
+                            return (
+                                <TouchableOpacity
+                                    key={d}
+                                    onPress={() => setSelectedDay(d)}
+                                    style={[
+                                        s.dayPill,
+                                        { backgroundColor: c.surface, borderColor: c.border },
+                                        active && { backgroundColor: c.accent, borderColor: c.accent },
+                                        hasSession && !active && { borderColor: c.accent, borderWidth: 1.5 },
+                                    ]}
+                                >
+                                    <Text
+                                        style={[
+                                            s.dayPillText,
+                                            { color: c.textSecondary },
+                                            active && { color: c.accentFg },
+                                        ]}
+                                    >
+                                        {d}
+                                    </Text>
+                                    {hasSession && (
+                                        <View
+                                            style={[
+                                                s.dot,
+                                                { backgroundColor: active ? c.accentFg : c.accent },
+                                            ]}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </ScrollView>
+            </View>
+
+            {/* ── Session card ── */}
+            <View style={[s.section, { marginBottom: 32 }]}>
+                {!program ? (
+                    /* No active program */
+                    <View style={[s.card, { backgroundColor: c.surface }]}>
+                        <Ionicons
+                            name="fitness-outline"
+                            size={36}
+                            color={c.textMuted}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <Text style={[s.emptyTitle, { color: c.text }]}>No active program</Text>
+                        <Text style={[s.emptyDesc, { color: c.textSecondary }]}>
+                            Create a training program to get started.
+                        </Text>
+                        <TouchableOpacity
+                            style={[s.actionBtn, { backgroundColor: c.accent }]}
+                            onPress={() => router.push("/programs/create" as any)}
+                        >
+                            <Text style={[s.actionBtnText, { color: c.accentFg }]}>
+                                Create a program
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : !todaySession ? (
+                    /* Rest day */
+                    <View style={[s.card, { backgroundColor: c.surface }]}>
+                        <Ionicons
+                            name="moon-outline"
+                            size={36}
+                            color={c.textMuted}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <Text style={[s.emptyTitle, { color: c.text }]}>Rest day</Text>
+                        <Text style={[s.emptyDesc, { color: c.textSecondary }]}>
+                            No session scheduled for {selectedDay}.
+                        </Text>
+                        <TouchableOpacity
+                            style={[s.actionBtn, { backgroundColor: c.surfaceElevated }]}
+                            onPress={() => router.push({
+                                pathname: "/programs/[id]",
+                                params: { id: String(program.id) },
+                            } as any)}
+                        >
+                            <Text style={[s.actionBtnText, { color: c.text }]}>View program</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    /* Session card */
+                    <View style={[s.card, { backgroundColor: c.surface }]}>
+                        {/* Session header */}
+                        <View style={s.sessionHeader}>
+                            <View>
+                                <Text style={[s.sessionDay, { color: c.text }]}>
+                                    {selectedDay}'s session
+                                </Text>
+                                <Text style={[s.sessionDate, { color: c.textMuted }]}>
+                                    {todaySession.scheduledDate ?? ""}
+                                </Text>
+                            </View>
+                            <View style={[
+                                s.statusBadge,
+                                {
+                                    backgroundColor:
+                                        todaySession.status === "COMPLETED"   ? c.successBg :
+                                        todaySession.status === "IN_PROGRESS" ? c.blueBg    : c.surfaceElevated,
+                                },
+                            ]}>
+                                <Text style={[
+                                    s.statusText,
+                                    {
+                                        color:
+                                            todaySession.status === "COMPLETED"   ? c.success :
+                                            todaySession.status === "IN_PROGRESS" ? c.blue    : c.textMuted,
+                                    },
+                                ]}>
+                                    {todaySession.status?.replace(/_/g, " ") ?? "PLANNED"}
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Exercises preview */}
+                        {(todaySession.exercises ?? []).slice(0, 3).map((ex) => (
+                            <View
+                                key={ex.id}
+                                style={[s.exRow, { borderTopColor: c.border }]}
+                            >
+                                <View style={[s.exIcon, { backgroundColor: c.surfaceElevated }]}>
+                                    <Ionicons
+                                        name={(EXERCISE_ICONS[ex.exerciseType] ?? "barbell") as any}
+                                        size={18}
+                                        color={c.textSecondary}
+                                    />
+                                </View>
+                                <View style={s.exInfo}>
+                                    <Text style={[s.exName, { color: c.text }]}>
+                                        {ex.exerciseType}
+                                    </Text>
+                                    <Text style={[s.exDetail, { color: c.textMuted }]}>
+                                        {ex.plannedSets} sets × {ex.plannedRepsPerSet} reps
+                                    </Text>
+                                </View>
+                                {ex.score != null && (
+                                    <View style={[
+                                        s.scoreCircle,
+                                        { backgroundColor: scoreColor(ex.score, c) },
+                                    ]}>
+                                        <Text style={s.scoreText}>{Math.round(ex.score)}</Text>
+                                    </View>
+                                )}
+                            </View>
+                        ))}
+
+                        {(todaySession.exercises?.length ?? 0) > 3 && (
+                            <Text style={[s.moreText, { color: c.textMuted }]}>
+                                +{(todaySession.exercises?.length ?? 0) - 3} more
+                            </Text>
+                        )}
+
+                        {/* Start / View button */}
+                        <TouchableOpacity
+                            style={[s.startBtn, { backgroundColor: c.accent }]}
+                            onPress={() => router.push({
+                                pathname: "/sessions/[id]",
+                                params: { id: String(todaySession.id) },
+                            } as any)}
+                        >
+                            <Ionicons
+                                name={todaySession.status === "COMPLETED" ? "checkmark-circle" : "play"}
+                                size={16}
+                                color={c.accentFg}
+                                style={{ marginRight: 8 }}
+                            />
+                            <Text style={[s.startBtnText, { color: c.accentFg }]}>
+                                {todaySession.status === "COMPLETED" ? "View session" : "Start session"}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+            </View>
+
+            {/* ── Active program quick-nav ── */}
+            {program && (
+                <View style={[s.section, { marginBottom: 48 }]}>
+                    <Text style={[s.sectionTitle, { color: c.textMuted }]}>ACTIVE PROGRAM</Text>
+                    <TouchableOpacity
+                        style={[s.programCard, { backgroundColor: c.surface, borderColor: c.border }]}
+                        onPress={() => router.push({
+                            pathname: "/programs/[id]",
+                            params: { id: String(program.id) },
+                        } as any)}
+                    >
+                        <View style={s.programInfo}>
+                            <Text style={[s.programTitle, { color: c.text }]}>{program.title}</Text>
+                            <Text style={[s.programDates, { color: c.textMuted }]}>
+                                {program.startDate} → {program.endDate}
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={c.textMuted} />
                     </TouchableOpacity>
                 </View>
-
-                {/* KPIs */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kpiRow} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
-                    {kpis.map((k) => (
-                        <View key={k.label} style={styles.kpiCard}>
-                            <View style={styles.kpiTop}>
-                                <Text style={styles.kpiValue}>{k.value}</Text>
-                                <Text style={{ color: k.trend === "up" ? "#22c55e" : "#ef4444", fontSize: 16 }}>
-                                    {k.trend === "up" ? "↑" : "↓"}
-                                </Text>
-                            </View>
-                            <Text style={styles.kpiLabel}>{k.label}</Text>
-                        </View>
-                    ))}
-                </ScrollView>
-
-                {/* Days */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>THIS WEEK</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {DAYS.map((d) => (
-                            <DayPill key={d} label={d} active={d === day} onClick={() => setDay(d)} />
-                        ))}
-                    </ScrollView>
-                </View>
-
-                {/* Session */}
-                <View style={styles.section}>
-                    {session ? (
-                        <View style={styles.card}>
-                            <View style={styles.sessionHeader}>
-                                <View>
-                                    <Text style={styles.sessionDay}>{day}'s session</Text>
-                                    <Text style={styles.sessionName}>{session.name}</Text>
-                                </View>
-                                <StatusBadge status={session.status} />
-                            </View>
-                            {session.exercises.map((ex: any) => (
-                                <View key={ex.id} style={styles.exerciseRow}>
-                                    <View style={styles.exerciseLeft}>
-                                        <View style={styles.exerciseIcon}><Text>🏋️</Text></View>
-                                        <View>
-                                            <Text style={styles.exerciseName}>{ex.type}</Text>
-                                            <Text style={styles.exerciseReps}>{ex.plannedReps} reps</Text>
-                                        </View>
-                                    </View>
-                                    <StatusBadge status={ex.status} />
-                                </View>
-                            ))}
-                            <TouchableOpacity style={styles.startButton}>
-                                <Text style={styles.startButtonText}>▶  Start session</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={styles.card}>
-                            <EmptyState
-                                title="No session planned"
-                                description="Plan a session for this day to start training."
-                                actionLabel="Plan a session"
-                                onAction={() => router.push("/programs/index")}
-                            />
-                        </View>
-                    )}
-                </View>
-
-                {/* Recent analyses */}
-                <View style={[styles.section, { marginBottom: 32 }]}>
-                    <Text style={styles.sectionTitle}>RECENT ANALYSES</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-                        {mockDashboard.recentAnalyses.map((a: any) => (
-                            <View key={a.id} style={styles.analysisCard}>
-                                <ScoreBadge score={a.score} />
-                                <Text style={styles.analysisType}>{a.exerciseType}</Text>
-                                <Text style={styles.analysisDate}>
-                                    {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                </Text>
-                            </View>
-                        ))}
-                    </ScrollView>
-                </View>
-            </ScrollView>
-        </MobileShell>
+            )}
+        </ScrollView>
     );
 }
 
-const styles = StyleSheet.create({
-    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#0f172a", paddingHorizontal: 20, paddingTop: 56, paddingBottom: 24 },
-    greeting: { fontSize: 12, color: "rgba(255,255,255,0.6)" },
-    username: { fontSize: 20, fontWeight: "800", color: "#fff" },
-    bell: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.1)", alignItems: "center", justifyContent: "center" },
-    kpiRow: { marginTop: -12 },
-    kpiCard: { minWidth: 120, backgroundColor: "#1e293b", borderRadius: 12, padding: 12 },
-    kpiTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-    kpiValue: { fontSize: 22, fontWeight: "800", color: "#f1f5f9" },
-    kpiLabel: { marginTop: 4, fontSize: 10, fontWeight: "600", color: "#64748b", textTransform: "uppercase" },
-    section: { marginTop: 20, paddingHorizontal: 16 },
-    sectionTitle: { fontSize: 10, fontWeight: "700", color: "#64748b", letterSpacing: 1, marginBottom: 10 },
-    card: { backgroundColor: "#1e293b", borderRadius: 16, padding: 16 },
-    sessionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
-    sessionDay: { fontSize: 12, color: "#64748b" },
-    sessionName: { fontSize: 15, fontWeight: "700", color: "#f1f5f9" },
-    exerciseRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#334155" },
-    exerciseLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-    exerciseIcon: { width: 36, height: 36, borderRadius: 8, backgroundColor: "#0f172a", alignItems: "center", justifyContent: "center" },
-    exerciseName: { fontSize: 13, fontWeight: "600", color: "#f1f5f9" },
-    exerciseReps: { fontSize: 11, color: "#64748b" },
-    startButton: { marginTop: 16, height: 52, backgroundColor: "#3b82f6", borderRadius: 8, alignItems: "center", justifyContent: "center" },
-    startButtonText: { color: "#fff", fontSize: 15, fontWeight: "600" },
-    analysisCard: { minWidth: 130, backgroundColor: "#1e293b", borderRadius: 16, padding: 12, alignItems: "center" },
-    analysisType: { marginTop: 8, fontSize: 13, fontWeight: "700", color: "#f1f5f9" },
-    analysisDate: { fontSize: 11, color: "#64748b" },
-});
+// ─── Styles (layout only — colors injected inline) ────────────────────────────
 
-// import { useMemo, useState } from "react";
-// import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from "react-native";
-// import { useRouter } from "expo-router";
-// import { MobileShell } from "@/components/MobileShell";
-// import { ScoreBadge } from "@/components/ScoreBadge";
-// import { StatusBadge } from "@/components/StatusBadge";
-// import { DayPill } from "@/components/DayPill";
-// import { EmptyState } from "@/components/EmptyState";
-// import { mockDashboard } from "@/mocks/dashboard";
-// import { mockPrograms } from "@/mocks/programs";
-// import { MaterialCommunityIcons } from '@expo/vector-icons';
-//
-// const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
-//
-// const todayKey = (() => {
-//     const i = new Date().getDay();
-//     return DAYS[(i + 6) % 7];
-// })();
-//
-// function getGreeting() {
-//     const h = new Date().getHours();
-//     if (h < 12) return "Good morning";
-//     if (h < 18) return "Good afternoon";
-//     return "Good evening";
-// }
-//
-// export default function Dashboard() {
-//     const router = useRouter();
-//     const [day, setDay] = useState<typeof DAYS[number]>(todayKey);
-//
-//     const session = useMemo(() => {
-//         const program = mockPrograms.find((p) => p.status === "Active");
-//         const week = program?.weeks[0];
-//         return week?.sessions.find((s) => s.day === day);
-//     }, [day]);
-//
-//     const kpis = [
-//         { label: "Today's Score", value: mockDashboard.todayScore.toFixed(1), trend: mockDashboard.todayTrend },
-//         { label: "Weekly Avg",    value: mockDashboard.weeklyAvg.toFixed(1),  trend: mockDashboard.weeklyTrend },
-//         { label: "Total Sessions",value: String(mockDashboard.totalSessions), trend: mockDashboard.totalTrend },
-//     ];
-//
-//     return (
-//         <MobileShell>
-//             <ScrollView showsVerticalScrollIndicator={false} style={{ backgroundColor: '#f8fafc' }}>
-//                 {/* --- HEADER MODIFIÉ --- */}
-//                 <View style={styles.header}>
-//                     <View>
-//                         <Text style={styles.greeting}>{getGreeting()},</Text>
-//                         <Text style={styles.username}>Alex Martin</Text>
-//                     </View>
-//                     <TouchableOpacity style={styles.bellContainer}>
-//                         <View style={styles.bellCircle}>
-//                             <Text style={{ fontSize: 22, color: '#fff' }}>🔔</Text>
-//                             <View style={styles.notificationDot} />
-//                         </View>
-//                     </TouchableOpacity>
-//                 </View>
-//
-//                 {/* KPIs (Modifiés pour être en blanc comme sur l'image) */}
-//                 <ScrollView
-//                     horizontal
-//                     showsHorizontalScrollIndicator={false}
-//                     style={styles.kpiRow}
-//                     contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-//                 >
-//                     {kpis.map((k) => (
-//                         <View key={k.label} style={styles.kpiCard}>
-//                             <View style={styles.kpiTop}>
-//                                 <Text style={styles.kpiValue}>{k.value}</Text>
-//                                 <Text style={{ color: "#22c55e", fontSize: 18, fontWeight: 'bold' }}>
-//                                     {k.trend === "up" ? "↑" : "↓"}
-//                                 </Text>
-//                             </View>
-//                             <Text style={styles.kpiLabel}>{k.label}</Text>
-//                         </View>
-//                     ))}
-//                 </ScrollView>
-//
-//                 {/* Days */}
-//                 <View style={styles.section}>
-//                     <Text style={styles.sectionTitle}>THIS WEEK</Text>
-//                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-//                         {DAYS.map((d) => (
-//                             <DayPill key={d} label={d} active={d === day} onClick={() => setDay(d)} />
-//                         ))}
-//                     </ScrollView>
-//                 </View>
-//
-//                 {/* Session */}
-//                 <View style={styles.section}>
-//                     {session ? (
-//                         <View style={styles.card}>
-//                             <View style={styles.sessionHeader}>
-//                                 <View>
-//                                     <Text style={styles.sessionDay}>{day}'s session</Text>
-//                                     <Text style={styles.sessionName}>{session.name}</Text>
-//                                 </View>
-//                                 <StatusBadge status={session.status} />
-//                             </View>
-//                             {session.exercises.map((ex: any) => (
-//                                 <View key={ex.id} style={styles.exerciseRow}>
-//                                     <View style={styles.exerciseLeft}>
-//                                         <View style={styles.exerciseIcon}><Text>🏋️</Text></View>
-//                                         <View>
-//                                             <Text style={styles.exerciseName}>{ex.type}</Text>
-//                                             <Text style={styles.exerciseReps}>{ex.plannedReps} reps</Text>
-//                                         </View>
-//                                     </View>
-//                                     <StatusBadge status={ex.status} />
-//                                 </View>
-//                             ))}
-//                             <TouchableOpacity style={styles.startButton}>
-//                                 <Text style={styles.startButtonText}>▶  Start session</Text>
-//                             </TouchableOpacity>
-//                         </View>
-//                     ) : (
-//                         // <View style={styles.card}>
-//                         //     <EmptyState
-//                         //         title="No session planned"
-//                         //         description="Plan a session for this day to start training."
-//                         //         actionLabel="Plan a session"
-//                         //         onAction={() => router.push("/(tabs)/pages/programsList")}
-//                         //     />
-//                         // </View>
-//                         <View style={styles.emptyCardShadow}>
-//                             <View style={styles.emptyCardInner}>
-//                                 <View style={styles.emptyIconCircle}>
-//                                     <MaterialCommunityIcons name="calendar-plus" size={32} color="#162D55" />
-//                                 </View>
-//
-//                                 <Text style={styles.emptyTitle}>No session planned</Text>
-//                                 <Text style={styles.emptyDescription}>
-//                                     Plan a session for this day to start training and reach your goals.
-//                                 </Text>
-//
-//                                 <TouchableOpacity
-//                                     style={styles.emptyActionButton}
-//                                     onPress={() => router.push("/(tabs)/pages/programsList")}
-//                                 >
-//                                     <Text style={styles.emptyActionText}>Plan a session</Text>
-//                                 </TouchableOpacity>
-//                             </View>
-//                         </View>
-//                     )}
-//                 </View>
-//
-//                 {/* Recent analyses */}
-//                 <View style={[styles.section, { marginBottom: 32 }]}>
-//                     <Text style={styles.sectionTitle}>RECENT ANALYSES</Text>
-//                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-//                         {mockDashboard.recentAnalyses.map((a: any) => (
-//                             <View key={a.id} style={styles.analysisCard}>
-//                                 <ScoreBadge score={a.score} />
-//                                 <Text style={styles.analysisType}>{a.exerciseType}</Text>
-//                                 <Text style={styles.analysisDate}>
-//                                     {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-//                                 </Text>
-//                             </View>
-//                         ))}
-//                     </ScrollView>
-//                 </View>
-//             </ScrollView>
-//         </MobileShell>
-//     );
-// }
-//
-// const styles = StyleSheet.create({
-//     // STYLE DU HEADER (Inspiré de l'image)
-//     header: {
-//         flexDirection: "row",
-//         justifyContent: "space-between",
-//         alignItems: "center",
-//         backgroundColor: "#162D55", // Bleu marine de l'image
-//         paddingHorizontal: 20,
-//         paddingTop: 64,
-//         paddingBottom: 45
-//     },
-//     greeting: {
-//         fontSize: 14,
-//         color: "rgba(255,255,255,0.7)",
-//         marginBottom: 2
-//     },
-//     username: {
-//         fontSize: 28,
-//         fontWeight: "800",
-//         color: "#fff"
-//     },
-//     bellContainer: {
-//         position: 'relative',
-//     },
-//     bellCircle: {
-//         width: 48,
-//         height: 48,
-//         borderRadius: 24,
-//         backgroundColor: "rgba(255,255,255,0.15)",
-//         alignItems: "center",
-//         justifyContent: "center"
-//     },
-//     notificationDot: {
-//         position: 'absolute',
-//         top: 12,
-//         right: 12,
-//         width: 8,
-//         height: 8,
-//         borderRadius: 4,
-//         backgroundColor: '#FFD700', // Point jaune de l'image
-//         borderWidth: 1.5,
-//         borderColor: '#162D55',
-//     },
-//
-//     // STYLE DES CARTES KPI (En blanc comme sur l'image)
-//     kpiRow: {
-//         marginTop: -25 // Fait chevaucher les cartes sur le header bleu
-//     },
-//     kpiCard: {
-//         minWidth: 120,
-//         backgroundColor: "#fff",
-//         borderRadius: 16,
-//         padding: 16,
-//         shadowColor: "#000",
-//         shadowOffset: { width: 0, height: 4 },
-//         shadowOpacity: 0.1,
-//         shadowRadius: 8,
-//         elevation: 5
-//     },
-//     kpiTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-//     kpiValue: { fontSize: 26, fontWeight: "800", color: "#1e293b" },
-//     kpiLabel: { marginTop: 6, fontSize: 10, fontWeight: "700", color: "#94a3b8", textTransform: "uppercase" },
-//
-//     // RESTE DES STYLES
-//     section: { marginTop: 24, paddingHorizontal: 16 },
-//     sectionTitle: { fontSize: 11, fontWeight: "700", color: "#64748b", letterSpacing: 1, marginBottom: 12 },
-//     card: { backgroundColor: "#fff", borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#f1f5f9' },
-//     sessionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
-//     sessionDay: { fontSize: 12, color: "#64748b" },
-//     sessionName: { fontSize: 16, fontWeight: "700", color: "#1e293b" },
-//     exerciseRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderTopWidth: 1, borderTopColor: "#f1f5f9" },
-//     exerciseLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-//     exerciseIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#f1f5f9", alignItems: "center", justifyContent: "center" },
-//     exerciseName: { fontSize: 14, fontWeight: "600", color: "#1e293b" },
-//     exerciseReps: { fontSize: 12, color: "#64748b" },
-//     startButton: { backgroundColor: "#162D55", borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 16 },
-//     startButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-//     analysisCard: { backgroundColor: "#fff", borderRadius: 12, padding: 12, width: 120, borderWidth: 1, borderColor: '#f1f5f9' },
-//     analysisType: { fontSize: 12, fontWeight: "700", color: "#1e293b", marginTop: 8 },
-//     analysisDate: { fontSize: 10, color: "#94a3b8", marginTop: 2 },
-//
-//     // Styles pour l'état vide (Empty State)
-//     emptyCardShadow: {
-//         backgroundColor: "#fff",
-//         borderRadius: 20,
-//         // Ombre portée pour détacher la carte
-//         shadowColor: "#000",
-//         shadowOffset: { width: 0, height: 10 },
-//         shadowOpacity: 0.05,
-//         shadowRadius: 15,
-//         elevation: 4,
-//     },
-//     emptyCardInner: {
-//         padding: 30,
-//         alignItems: 'center',
-//         justifyContent: 'center',
-//     },
-//     emptyIconCircle: {
-//         width: 64,
-//         height: 64,
-//         borderRadius: 32,
-//         backgroundColor: "#F1F5F9", // Gris très clair
-//         alignItems: 'center',
-//         justifyContent: 'center',
-//         marginBottom: 16,
-//     },
-//     emptyTitle: {
-//         fontSize: 18,
-//         fontWeight: "800",
-//         color: "#1E293B",
-//         marginBottom: 8,
-//     },
-//     emptyDescription: {
-//         fontSize: 14,
-//         color: "#64748B",
-//         textAlign: 'center',
-//         lineHeight: 20,
-//         marginBottom: 24,
-//         paddingHorizontal: 10,
-//     },
-//     emptyActionButton: {
-//         backgroundColor: "#162D55", // Même bleu que le header
-//         paddingVertical: 12,
-//         paddingHorizontal: 24,
-//         borderRadius: 12,
-//     },
-//     emptyActionText: {
-//         color: "#fff",
-//         fontWeight: "700",
-//         fontSize: 14,
-//     },
-//
-// });
+const s = StyleSheet.create({
+    root:    { flex: 1 },
+    centered:{ flex: 1, alignItems: "center", justifyContent: "center" },
+
+    // Header
+    header:     { flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+                  paddingHorizontal: 20, paddingTop: 60, paddingBottom: 24 },
+    headerLeft: { flex: 1 },
+    greeting:   { fontSize: 12, fontWeight: "500", marginBottom: 2 },
+    username:   { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+    profileBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+
+    // KPI row
+    kpiScroll:  { marginBottom: 4 },
+    kpiContent: { paddingHorizontal: 16, gap: 10 },
+    kpiCard:    { minWidth: 130, borderRadius: 14, padding: 16, paddingBottom: 14 },
+    kpiValue:   { fontSize: 26, fontWeight: "800", letterSpacing: -1 },
+    kpiLabel:   { marginTop: 4, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
+
+    // Section
+    section:      { marginTop: 24, paddingHorizontal: 16 },
+    sectionTitle: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, marginBottom: 12 },
+
+    // Day pills
+    dayRow:           { flexDirection: "row", gap: 8 },
+    dayPill:          { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 22,
+                        borderWidth: 1, alignItems: "center", minWidth: 48 },
+    dayPillText:      { fontSize: 12, fontWeight: "700" },
+    dot:              { width: 5, height: 5, borderRadius: 3, marginTop: 4 },
+
+    // Card
+    card:      { borderRadius: 18, padding: 18, alignItems: "stretch" },
+    emptyTitle:{ fontSize: 16, fontWeight: "700", marginBottom: 4, textAlign: "center" },
+    emptyDesc: { fontSize: 13, textAlign: "center", marginBottom: 20, lineHeight: 18 },
+    actionBtn: { height: 46, borderRadius: 10, alignItems: "center",
+                 justifyContent: "center", flexDirection: "row" },
+    actionBtnText: { fontWeight: "700", fontSize: 14 },
+
+    // Session header
+    sessionHeader: { flexDirection: "row", justifyContent: "space-between",
+                     alignItems: "flex-start", marginBottom: 14 },
+    sessionDay:    { fontSize: 15, fontWeight: "700" },
+    sessionDate:   { fontSize: 11, marginTop: 2 },
+    statusBadge:   { borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
+    statusText:    { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 },
+
+    // Exercise rows
+    exRow:   { flexDirection: "row", alignItems: "center", gap: 12,
+                paddingVertical: 11, borderTopWidth: StyleSheet.hairlineWidth },
+    exIcon:  { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+    exInfo:  { flex: 1 },
+    exName:  { fontSize: 13, fontWeight: "700" },
+    exDetail:{ fontSize: 11, marginTop: 1 },
+    scoreCircle: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+    scoreText:   { color: "#fff", fontWeight: "800", fontSize: 11 },
+    moreText:    { fontSize: 11, textAlign: "center", marginTop: 10 },
+
+    // Start button
+    startBtn:     { marginTop: 16, height: 50, borderRadius: 12, alignItems: "center",
+                    justifyContent: "center", flexDirection: "row" },
+    startBtnText: { fontSize: 14, fontWeight: "700" },
+
+    // Program quick-nav
+    programCard:  { flexDirection: "row", alignItems: "center", borderRadius: 14,
+                    padding: 16, borderWidth: StyleSheet.hairlineWidth },
+    programInfo:  { flex: 1 },
+    programTitle: { fontSize: 14, fontWeight: "700" },
+    programDates: { fontSize: 11, marginTop: 2 },
+});

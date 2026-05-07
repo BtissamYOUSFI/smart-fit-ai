@@ -4,26 +4,18 @@ import fit.smart.smartfitapi.util.enums.ExerciseType;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Setter
 @Getter
 public class ExerciseDto {
 
     private Long id;
-
     private ExerciseType exerciseType;
-
-    private Integer plannedReps;
-
-    private Integer performedReps;
-
+    private Integer plannedSets;
+    private Integer plannedRepsPerSet;
     private Double score;
-
     private Integer orderInSession;
-
-    private AnalysisResultDto analysisResult;
-
-    private VideoCaptureDto videoCapture;
-
     private Long sessionId;
-
+    private List<ExerciseRepDto> reps;
 }

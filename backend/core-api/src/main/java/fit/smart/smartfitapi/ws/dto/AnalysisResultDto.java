@@ -11,26 +11,11 @@ import java.util.List;
 public class AnalysisResultDto {
 
     private Long id;
-
-    private Double avgKneeAngle;
-
-    private Double avgHipAngle;
-
-    private Double avgBackAngle;
-
-    private Double stabilityScore;
-
-    private Double amplitudeScore;
-
-    private List<String> detectedErrors;
-
-    private String feedback;
-
-    private LocalDateTime analyzedAt;
-
     private Double globalScore;
-
-    private Long exerciseId;
-
+    private String exerciseName;
+    private Integer framesAnalyzed;
+    private List<AnalysisErrorDto> errors;
+    private List<String> feedback;
+    private LocalDateTime analyzedAt;
+    private Long exerciseRepId;
 }
-

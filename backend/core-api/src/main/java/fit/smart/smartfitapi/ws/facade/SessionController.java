@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/session/")
@@ -43,6 +44,15 @@ public class SessionController {
             httpStatus = HttpStatus.CREATED;
         }
         return new ResponseEntity<>(converter.toDto(saved), httpStatus);
+    }
+
+    @PatchMapping("id/{id}/status")
+    public ResponseEntity<SessionDto> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        Session updated = service.updateStatus(id, body.get("status"));
+        if (updated == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(converter.toDto(updated));
     }
 
     @DeleteMapping("id/{id}")

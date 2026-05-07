@@ -39,18 +39,50 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwtToken = authHeader.substring(7);
-            email = jwtUtil.extractEmail(jwtToken);
+            try {
+                // We are trying to extract the email
+                email = jwtUtil.extractEmail(jwtToken);
+            } catch (Exception e) {
+                // If the token is expired or corrupted, the error is logged.
+                // but the request is not blocked here.
+                logger.warn("Invalid or expired JWT : " + e.getMessage());
+            }
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
             if (jwtUtil.validateToken(jwtToken, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
+        //  important : this line must always be executed
         filterChain.doFilter(request, response);
     }
+
+//    @Override
+//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+//        String authHeader = request.getHeader("Authorization");
+//        String jwtToken = null;
+//        String email = null;
+//
+//        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+//            jwtToken = authHeader.substring(7);
+//            email = jwtUtil.extractEmail(jwtToken);
+//        }
+//
+//        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+//            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+//            if (jwtUtil.validateToken(jwtToken, userDetails)) {
+//                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+//                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//                SecurityContextHolder.getContext().setAuthentication(authToken);
+//            }
+//        }
+//
+//        filterChain.doFilter(request, response);
+//    }
 }

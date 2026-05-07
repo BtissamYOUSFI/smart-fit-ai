@@ -18,7 +18,7 @@ public class SessionTemplateDto {
 
     private Integer orderInWeek;
 
-    private Long weeklyTemplate;
+    private Long weeklyTemplateId;
 
     private List<ExerciseTemplateDto> exerciseTemplates = new ArrayList<>();
 

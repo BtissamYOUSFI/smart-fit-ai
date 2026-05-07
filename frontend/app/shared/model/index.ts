@@ -7,5 +7,6 @@ export * from "./SessionTemplate";
 export * from "./ExerciseTemplate";
 export * from "./Session";
 export * from "./Exercise";
+export * from "./ExerciseRep";
 export * from "./AnalysisResult";
 export * from "./VideoCapture";
