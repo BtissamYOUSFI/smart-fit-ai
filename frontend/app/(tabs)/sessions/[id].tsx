@@ -300,19 +300,22 @@ export default function SessionDetail() {
       })
     : session.dayOfWeek;
 
+  const isCompleted = session.status === "COMPLETED";
+
   function statusColor(): string {
-    if (allDone) return c.success;
-    if (session.status === "IN_PROGRESS") return c.blue;
+    if (isCompleted) return c.success;
+    if (session?.status === "IN_PROGRESS") return c.blue;
     return c.textMuted;
   }
   function statusBg(): string {
-    if (allDone) return c.successBg;
-    if (session.status === "IN_PROGRESS") return c.blueBg;
+    if (isCompleted) return c.successBg;
+    if (session?.status === "IN_PROGRESS") return c.blueBg;
     return c.surface;
   }
   function statusLabel(): string {
-    if (allDone) return "Completed";
-    return session.status?.replace(/_/g, " ") ?? "Planned";
+    if (isCompleted) return "Completed";
+    if (session?.status === "IN_PROGRESS") return "In Progress";
+    return session?.status?.replace(/_/g, " ") ?? "Planned";
   }
 
   return (
@@ -452,10 +455,18 @@ export default function SessionDetail() {
         <TouchableOpacity
           style={[
             ss.mainBtn,
-            { backgroundColor: allDone ? c.success : c.surfaceElevated, marginTop: 28 },
+            {
+              backgroundColor: isCompleted
+                ? c.successBg
+                : allDone
+                ? c.success
+                : c.surfaceElevated,
+              marginTop: 28,
+            },
           ]}
-          activeOpacity={0.8}
+          activeOpacity={isCompleted ? 1 : 0.8}
           onPress={async () => {
+            if (isCompleted) return;
             if (!allDone) {
               Alert.alert(
                 "Not complete",
@@ -465,6 +476,7 @@ export default function SessionDetail() {
             }
             try {
               await updateSessionStatus(session.id, "COMPLETED");
+              setSession((prev) => prev ? { ...prev, status: "COMPLETED" } : prev);
               Alert.alert(
                 "Session Complete",
                 "Great work! Your session has been recorded.",
@@ -476,13 +488,13 @@ export default function SessionDetail() {
           }}
         >
           <Ionicons
-            name={allDone ? "checkmark-circle-outline" : "play-outline"}
+            name={isCompleted ? "checkmark-circle" : allDone ? "checkmark-circle-outline" : "play-outline"}
             size={18}
-            color={allDone ? c.accentFg : c.textMuted}
+            color={isCompleted ? c.success : allDone ? "#fff" : c.textMuted}
             style={{ marginRight: 8 }}
           />
-          <Text style={[ss.mainBtnText, { color: allDone ? c.accentFg : c.textMuted }]}>
-            {allDone ? "Complete Session" : "Start Session"}
+          <Text style={[ss.mainBtnText, { color: isCompleted ? c.success : allDone ? "#fff" : c.textMuted }]}>
+            {isCompleted ? "Session Complete" : allDone ? "Complete Session" : "Start Session"}
           </Text>
         </TouchableOpacity>
       </ScrollView>

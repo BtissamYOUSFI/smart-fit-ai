@@ -17,15 +17,10 @@ function deriveStatus(p: TrainingProgram): "Active" | "Upcoming" | "Completed" {
 }
 
 function completionRate(p: TrainingProgram): number {
-    const today = new Date();
-    const start = new Date(p.startDate);
-    const end   = new Date(p.endDate);
-    if (today < start) return 0;
-    if (today > end)   return 100;
-    return Math.round(
-        (today.getTime() - start.getTime()) /
-        (end.getTime()   - start.getTime()) * 100
-    );
+    const allSessions = p.programWeeks?.flatMap(w => w.sessions ?? []) ?? [];
+    if (allSessions.length === 0) return 0;
+    const completed = allSessions.filter(s => s.status === "COMPLETED").length;
+    return Math.round(completed / allSessions.length * 100);
 }
 
 export default function ProgramsList() {

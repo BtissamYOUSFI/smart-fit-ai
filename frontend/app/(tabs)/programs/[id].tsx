@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
     View, Text, ScrollView, TouchableOpacity,
     StyleSheet, ActivityIndicator, Alert,
@@ -134,7 +135,10 @@ export default function ProgramDetail() {
         }
     }, [id]);
 
-    useEffect(() => { loadProgram(); }, [loadProgram]);
+    useFocusEffect(useCallback(() => {
+        setWeekData({});
+        loadProgram();
+    }, [loadProgram]));
 
     useEffect(() => {
         if (tab === "weeks" && program && openWeek !== null) {

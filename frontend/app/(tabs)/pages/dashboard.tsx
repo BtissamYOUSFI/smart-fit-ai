@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import {
     View, Text, ScrollView, TouchableOpacity,
     StyleSheet, ActivityIndicator, RefreshControl,
@@ -98,7 +99,7 @@ export default function Dashboard() {
         }
     }, []);
 
-    useEffect(() => { load(); }, [load]);
+    useFocusEffect(useCallback(() => { load(); }, [load]));
 
     // Compute KPIs from program week sessions
     const allSessions: Session[] = week?.sessions ?? [];
