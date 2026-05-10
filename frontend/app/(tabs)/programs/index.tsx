@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/context/ThemeContext";
 import { fetchMyPrograms, deleteProgramById, ApiError } from "@/app/shared/service/trainingProgramApi";
 import { TrainingProgram } from "@/app/shared/model/TrainingProgram";
+import { Platform } from "react-native";
 
 function deriveStatus(p: TrainingProgram): "Active" | "Upcoming" | "Completed" {
     const today = new Date().toISOString().split("T")[0];
@@ -54,21 +55,47 @@ export default function ProgramsList() {
 
     useEffect(() => { loadPrograms(); }, [loadPrograms]);
 
+    // const handleDelete = (p: TrainingProgram) => {
+    //     Alert.alert("Delete Program", `Delete "${p.title}"?`, [
+    //         { text: "Cancel", style: "cancel" },
+    //         {
+    //             text: "Delete", style: "destructive",
+    //             onPress: async () => {
+    //                 try {
+    //                     await deleteProgramById(p.id);
+    //                     setPrograms((prev) => prev.filter((x) => x.id !== p.id));
+    //                 } catch (err) {
+    //                     Alert.alert("Error", err instanceof ApiError ? err.message : "Failed to delete.");
+    //                 }
+    //             },
+    //         },
+    //     ]);
+    // };
+
     const handleDelete = (p: TrainingProgram) => {
-        Alert.alert("Delete Program", `Delete "${p.title}"?`, [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete", style: "destructive",
-                onPress: async () => {
-                    try {
-                        await deleteProgramById(p.id);
-                        setPrograms((prev) => prev.filter((x) => x.id !== p.id));
-                    } catch (err) {
-                        Alert.alert("Error", err instanceof ApiError ? err.message : "Failed to delete.");
-                    }
+        if (Platform.OS === "web") {
+            const confirmed = window.confirm(`Delete "${p.title}"?`);
+            if (confirmed) {
+                deleteProgramById(p.id)
+                    .then(() => setPrograms((prev) => prev.filter((x) => x.id !== p.id)))
+                    .catch((err) => window.alert(err instanceof ApiError ? err.message : "Failed to delete."));
+            }
+        } else {
+            Alert.alert("Delete Program", `Delete "${p.title}"?`, [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete", style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deleteProgramById(p.id);
+                            setPrograms((prev) => prev.filter((x) => x.id !== p.id));
+                        } catch (err) {
+                            Alert.alert("Error", err instanceof ApiError ? err.message : "Failed to delete.");
+                        }
+                    },
                 },
-            },
-        ]);
+            ]);
+        }
     };
 
     if (loading) {
