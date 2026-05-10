@@ -56,6 +56,21 @@ public class TrainingProgramController {
         return ResponseEntity.ok(converter.toDtos(list));
     }
 
+    @PatchMapping("id/{id}")
+    public ResponseEntity<?> patch(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
+        TrainingProgram existing = service.findById(id);
+        if (existing == null) return ResponseEntity.notFound().build();
+        if (!existing.getUser().getEmail().equals(auth.getName())) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+
+        LocalDate startDate = body.containsKey("startDate") ? LocalDate.parse(body.get("startDate")) : null;
+        LocalDate endDate   = body.containsKey("endDate")   ? LocalDate.parse(body.get("endDate"))   : null;
+
+        TrainingProgram updated = service.patch(id, body.get("title"), startDate, endDate);
+        if (updated == null) return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "You already have a program during this period."));
+        return ResponseEntity.ok(converter.toDto(updated));
+    }
+
     @DeleteMapping("id/{id}")
     public ResponseEntity<Void> deleteById(@PathVariable Long id, Authentication auth) {
         TrainingProgram program = service.findById(id);

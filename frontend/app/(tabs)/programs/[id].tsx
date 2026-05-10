@@ -3,11 +3,12 @@ import { useFocusEffect } from "expo-router";
 import {
     View, Text, ScrollView, TouchableOpacity,
     StyleSheet, ActivityIndicator, Alert, Platform,
+    Modal, TextInput, KeyboardAvoidingView,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/context/ThemeContext";
-import { fetchProgramById, deleteProgramById, ApiError } from "@/app/shared/service/trainingProgramApi";
+import { fetchProgramById, deleteProgramById, patchProgram, ApiError } from "@/app/shared/service/trainingProgramApi";
 import { fetchOrGenerateWeek } from "@/app/shared/service/programWeekApi";
 import { TrainingProgram } from "@/app/shared/model/TrainingProgram";
 import { ProgramWeek } from "@/app/shared/model/ProgramWeek";
@@ -119,6 +120,48 @@ export default function ProgramDetail() {
     const [weekData,    setWeekData]    = useState<Record<number, ProgramWeek>>({});
     const [weekLoading, setWeekLoading] = useState<Record<number, boolean>>({});
     const [openWeek,    setOpenWeek]    = useState<number | null>(null);
+
+    const [editVisible, setEditVisible]     = useState(false);
+    const [editTitle,   setEditTitle]       = useState("");
+    const [editStart,   setEditStart]       = useState("");
+    const [editEnd,     setEditEnd]         = useState("");
+    const [editSaving,  setEditSaving]      = useState(false);
+    const [editError,   setEditError]       = useState<string | null>(null);
+
+    function openEdit() {
+        if (!program) return;
+        setEditTitle(program.title);
+        setEditStart(program.startDate);
+        setEditEnd(program.endDate);
+        setEditError(null);
+        setEditVisible(true);
+    }
+
+    async function handleSaveEdit() {
+        const title = editTitle.trim();
+        const dateRx = /^\d{4}-\d{2}-\d{2}$/;
+        if (!title) { setEditError("Title is required."); return; }
+        if (!dateRx.test(editStart) || !dateRx.test(editEnd)) {
+            setEditError("Dates must be in YYYY-MM-DD format.");
+            return;
+        }
+        if (editStart >= editEnd) { setEditError("End date must be after start date."); return; }
+        try {
+            setEditSaving(true);
+            setEditError(null);
+            const updated = await patchProgram(Number(id), {
+                title,
+                startDate: editStart,
+                endDate:   editEnd,
+            });
+            setProgram(updated);
+            setEditVisible(false);
+        } catch (err) {
+            setEditError(err instanceof ApiError ? err.message : "Failed to save.");
+        } finally {
+            setEditSaving(false);
+        }
+    }
 
     const loadProgram = useCallback(async () => {
         if (!id) return;
@@ -263,11 +306,7 @@ export default function ProgramDetail() {
         <View style={{ flex: 1, backgroundColor: c.background }}>
             {/* ── Header ── */}
             <View style={[s.header, { borderBottomColor: c.border }]}>
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={s.headerBtn}
-                    activeOpacity={0.7}
-                >
+                <TouchableOpacity onPress={() => router.back()} style={s.headerBtn} activeOpacity={0.7}>
                     <Ionicons name="arrow-back" size={22} color={c.accent} />
                 </TouchableOpacity>
 
@@ -275,14 +314,72 @@ export default function ProgramDetail() {
                     {program.title}
                 </Text>
 
-                <TouchableOpacity
-                    onPress={handleDelete}
-                    style={s.headerBtn}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="trash-outline" size={20} color={c.error} />
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 4 }}>
+                    <TouchableOpacity onPress={openEdit} style={s.headerBtn} activeOpacity={0.7}>
+                        <Ionicons name="pencil-outline" size={20} color={c.accent} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleDelete} style={s.headerBtn} activeOpacity={0.7}>
+                        <Ionicons name="trash-outline" size={20} color={c.error} />
+                    </TouchableOpacity>
+                </View>
             </View>
+
+            {/* ── Edit modal ── */}
+            <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
+                <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: "flex-end" }}>
+                    <View style={[s.editSheet, { backgroundColor: c.surface }]}>
+                        <View style={s.editHeader}>
+                            <Text style={[s.editTitle, { color: c.text }]}>Edit Program</Text>
+                            <TouchableOpacity onPress={() => setEditVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                <Ionicons name="close-outline" size={24} color={c.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>TITLE</Text>
+                        <TextInput
+                            style={[s.fieldInput, { backgroundColor: c.inputBg, borderColor: c.border, color: c.text }]}
+                            value={editTitle}
+                            onChangeText={setEditTitle}
+                            placeholder="Program title"
+                            placeholderTextColor={c.placeholder}
+                        />
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>START DATE</Text>
+                        <TextInput
+                            style={[s.fieldInput, { backgroundColor: c.inputBg, borderColor: c.border, color: c.text }]}
+                            value={editStart}
+                            onChangeText={setEditStart}
+                            placeholder="YYYY-MM-DD"
+                            placeholderTextColor={c.placeholder}
+                        />
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>END DATE</Text>
+                        <TextInput
+                            style={[s.fieldInput, { backgroundColor: c.inputBg, borderColor: c.border, color: c.text }]}
+                            value={editEnd}
+                            onChangeText={setEditEnd}
+                            placeholder="YYYY-MM-DD"
+                            placeholderTextColor={c.placeholder}
+                        />
+
+                        {editError && (
+                            <Text style={[s.editErrorText, { color: c.error }]}>{editError}</Text>
+                        )}
+
+                        <TouchableOpacity
+                            style={[s.saveBtn, { backgroundColor: editSaving ? c.border : c.accent }]}
+                            onPress={handleSaveEdit}
+                            disabled={editSaving}
+                            activeOpacity={0.8}
+                        >
+                            {editSaving
+                                ? <ActivityIndicator size="small" color={c.accentFg} />
+                                : <Text style={[s.saveBtnText, { color: c.accentFg }]}>Save changes</Text>
+                            }
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -830,5 +927,54 @@ const s = StyleSheet.create({
         letterSpacing: 1,
         textTransform: "uppercase",
         marginBottom: 8,
+    },
+    /* Edit modal */
+    editSheet: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: 24,
+        paddingBottom: 40,
+        gap: 4,
+    },
+    editHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 20,
+    },
+    editTitle: {
+        fontSize: 17,
+        fontWeight: "700",
+    },
+    fieldLabel: {
+        fontSize: 10,
+        fontWeight: "700",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        marginBottom: 6,
+        marginTop: 12,
+    },
+    fieldInput: {
+        height: 46,
+        borderRadius: 10,
+        borderWidth: 1,
+        paddingHorizontal: 14,
+        fontSize: 14,
+    },
+    editErrorText: {
+        fontSize: 12,
+        fontWeight: "600",
+        marginTop: 8,
+    },
+    saveBtn: {
+        height: 50,
+        borderRadius: 12,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 20,
+    },
+    saveBtnText: {
+        fontSize: 15,
+        fontWeight: "700",
     },
 });

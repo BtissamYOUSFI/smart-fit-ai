@@ -87,6 +87,18 @@ export async function updateProgram(program: TrainingProgram): Promise<TrainingP
     }
 }
 
+export async function patchProgram(
+    id: number,
+    updates: { title?: string; startDate?: string; endDate?: string }
+): Promise<TrainingProgram> {
+    try {
+        const res = await api.patch(`/training-program/id/${id}`, updates);
+        return res.data;
+    } catch (error: any) {
+        handleAxiosError(error);
+    }
+}
+
 export async function deleteProgramById(id: number): Promise<void> {
     try {
         await api.delete(`/training-program/id/${id}`);
