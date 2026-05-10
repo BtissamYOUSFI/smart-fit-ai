@@ -57,7 +57,10 @@ public class TrainingProgramController {
     }
 
     @DeleteMapping("id/{id}")
-    public ResponseEntity<Void> deleteById(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteById(@PathVariable Long id, Authentication auth) {
+        TrainingProgram program = service.findById(id);
+        if (program == null) return ResponseEntity.notFound().build();
+        if (!program.getUser().getEmail().equals(auth.getName())) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         service.deleteById(id);
         return ResponseEntity.ok().build();
     }

@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
     View, Text, ScrollView, TouchableOpacity,
-    StyleSheet, ActivityIndicator, Alert, RefreshControl,
+    StyleSheet, ActivityIndicator, Alert, RefreshControl, Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,23 +48,28 @@ export default function ProgramsList() {
         }
     }, []);
 
-    useEffect(() => { loadPrograms(); }, [loadPrograms]);
+    useFocusEffect(useCallback(() => { loadPrograms(); }, [loadPrograms]));
 
     const handleDelete = (p: TrainingProgram) => {
-        Alert.alert("Delete Program", `Delete "${p.title}"?`, [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete", style: "destructive",
-                onPress: async () => {
-                    try {
-                        await deleteProgramById(p.id);
-                        setPrograms((prev) => prev.filter((x) => x.id !== p.id));
-                    } catch (err) {
-                        Alert.alert("Error", err instanceof ApiError ? err.message : "Failed to delete.");
-                    }
-                },
-            },
-        ]);
+        const doDelete = async () => {
+            try {
+                await deleteProgramById(p.id);
+                setPrograms((prev) => prev.filter((x) => x.id !== p.id));
+            } catch (err) {
+                const msg = err instanceof ApiError ? err.message : "Failed to delete.";
+                if (Platform.OS === "web") { window.alert(msg); }
+                else { Alert.alert("Error", msg); }
+            }
+        };
+
+        if (Platform.OS === "web") {
+            if (window.confirm(`Delete "${p.title}"?`)) doDelete();
+        } else {
+            Alert.alert("Delete Program", `Delete "${p.title}"?`, [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: doDelete },
+            ]);
+        }
     };
 
     if (loading) {

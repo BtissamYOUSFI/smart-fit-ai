@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import {
     View, Text, ScrollView, TouchableOpacity,
-    StyleSheet, ActivityIndicator, Alert,
+    StyleSheet, ActivityIndicator, Alert, Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -169,20 +169,25 @@ export default function ProgramDetail() {
     }
 
     const handleDelete = () => {
-        Alert.alert("Delete Program", `Delete "${program?.title}"?`, [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: "Delete", style: "destructive",
-                onPress: async () => {
-                    try {
-                        await deleteProgramById(Number(id));
-                        router.back();
-                    } catch (err) {
-                        Alert.alert("Error", err instanceof Error ? err.message : "Failed.");
-                    }
-                },
-            },
-        ]);
+        const doDelete = async () => {
+            try {
+                await deleteProgramById(Number(id));
+                router.back();
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : "Failed.";
+                if (Platform.OS === "web") { window.alert(msg); }
+                else { Alert.alert("Error", msg); }
+            }
+        };
+
+        if (Platform.OS === "web") {
+            if (window.confirm(`Delete "${program?.title}"?`)) doDelete();
+        } else {
+            Alert.alert("Delete Program", `Delete "${program?.title}"?`, [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: doDelete },
+            ]);
+        }
     };
 
     // ─── Loading ──────────────────────────────────────────────────────────────
