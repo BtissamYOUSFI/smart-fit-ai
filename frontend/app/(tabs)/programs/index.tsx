@@ -133,7 +133,6 @@ export default function ProgramsList() {
                 }
             >
                 {programs.length === 0 && !error ? (
-                    /* Empty state */
                     <View style={styles.emptyState}>
                         <View style={[styles.emptyIconBox, { backgroundColor: c.surface }]}>
                             <Ionicons name="calendar-outline" size={48} color={c.textMuted} />
@@ -161,7 +160,6 @@ export default function ProgramsList() {
                                 key={p.id}
                                 style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}
                             >
-                                {/* Tappable card body */}
                                 <TouchableOpacity
                                     onPress={() => router.push({
                                         pathname: "/programs/[id]",
@@ -170,7 +168,6 @@ export default function ProgramsList() {
                                     activeOpacity={0.7}
                                     style={styles.cardBody}
                                 >
-                                    {/* Title row + badge */}
                                     <View style={styles.cardTopRow}>
                                         <Text
                                             style={[styles.cardTitle, { color: c.text }]}
@@ -178,29 +175,17 @@ export default function ProgramsList() {
                                         >
                                             {p.title}
                                         </Text>
-                                        <View
-                                            style={[
-                                                styles.badge,
-                                                { backgroundColor: statusBgColor(status) },
-                                            ]}
-                                        >
-                                            <Text
-                                                style={[
-                                                    styles.badgeText,
-                                                    { color: statusTextColor(status) },
-                                                ]}
-                                            >
+                                        <View style={[styles.badge, { backgroundColor: statusBgColor(status) }]}>
+                                            <Text style={[styles.badgeText, { color: statusTextColor(status) }]}>
                                                 {status}
                                             </Text>
                                         </View>
                                     </View>
 
-                                    {/* Date range */}
                                     <Text style={[styles.cardDate, { color: c.textMuted }]}>
                                         {p.startDate}  {p.endDate}
                                     </Text>
 
-                                    {/* Progress bar */}
                                     <View style={[styles.progressBg, { backgroundColor: c.border }]}>
                                         <View
                                             style={[
@@ -214,7 +199,6 @@ export default function ProgramsList() {
                                     </Text>
                                 </TouchableOpacity>
 
-                                {/* Delete button row */}
                                 <View style={[styles.cardActions, { borderTopColor: c.border }]}>
                                     <TouchableOpacity
                                         style={[styles.deleteBtn, { backgroundColor: c.errorBg, borderColor: c.error }]}
@@ -291,7 +275,6 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
         gap: 12,
     },
-    /* Empty state */
     emptyState: {
         alignItems: "center",
         paddingTop: 80,
@@ -326,7 +309,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
     },
-    /* Program card */
     card: {
         borderRadius: 16,
         borderWidth: 1,
@@ -373,7 +355,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         marginTop: 5,
     },
-    /* Delete row */
     cardActions: {
         flexDirection: "row",
         justifyContent: "flex-end",

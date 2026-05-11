@@ -14,8 +14,9 @@ import { tokenStorage } from "@/utils/tokenStorage";
 import { RepeatMode } from "@/app/shared/model/WeeklyTemplate";
 import { DayOfWeek } from "@/app/shared/model/SessionTemplate";
 import { ExerciseType } from "@/app/shared/model/ExerciseTemplate";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { Platform } from "react-native";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Step = "info" | "templates";
 
@@ -62,7 +63,7 @@ function templateLabel(mode: RepeatMode, idx: number): string {
   return `Week ${idx + 1} of month`;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+
 
 export default function CreateProgram() {
   const router = useRouter();
@@ -90,6 +91,8 @@ export default function CreateProgram() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError]       = useState<string | null>(null);
   const submitting                    = useRef(false);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker]   = useState(false);
 
   // ── Step 1: validate & advance ───────────────────────────────────────────
   function goToTemplates() {
@@ -208,6 +211,22 @@ export default function CreateProgram() {
     }
   }
 
+  function onStartChange(event: DateTimePickerEvent, date?: Date) {
+    setShowStartPicker(Platform.OS === "ios"); // reste ouvert sur iOS
+    if (event.type === "set" && date) {
+      setStart(date.toISOString().split("T")[0]);
+      setFieldErrors((p) => ({ ...p, start: "" }));
+    }
+  }
+
+  function onEndChange(event: DateTimePickerEvent, date?: Date) {
+    setShowEndPicker(Platform.OS === "ios");
+    if (event.type === "set" && date) {
+      setEnd(date.toISOString().split("T")[0]);
+      setFieldErrors((p) => ({ ...p, end: "" }));
+    }
+  }
+
   // ─── Render: Step 1 ───────────────────────────────────────────────────────
   if (step === "info") {
     return (
@@ -251,6 +270,66 @@ export default function CreateProgram() {
           ) : null}
 
           {/* Date row */}
+          {/*<Text style={[s.sectionLabel, { color: c.textMuted, marginTop: 20 }]}>SCHEDULE DATES</Text>*/}
+          {/*<View style={s.dateRow}>*/}
+          {/*  /!* Start date *!/*/}
+          {/*  <View style={{ flex: 1 }}>*/}
+          {/*    <TouchableOpacity*/}
+          {/*        style={[*/}
+          {/*          s.dateInput,*/}
+          {/*          { backgroundColor: c.inputBg, borderColor: fieldErrors.start ? c.error : c.border },*/}
+          {/*        ]}*/}
+          {/*        onPress={() => setShowStartPicker(true)}*/}
+          {/*        activeOpacity={0.7}*/}
+          {/*    >*/}
+          {/*      <Ionicons name="calendar-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />*/}
+          {/*      <Text style={[s.dateInputText, { color: start ? c.text : c.placeholder, flex: 1 }]}>*/}
+          {/*        {start || "Start date"}*/}
+          {/*      </Text>*/}
+          {/*    </TouchableOpacity>*/}
+          {/*    {fieldErrors.start ? (*/}
+          {/*        <Text style={[s.fieldError, { color: c.error }]}>{fieldErrors.start}</Text>*/}
+          {/*    ) : null}*/}
+          {/*    {showStartPicker && (*/}
+          {/*        <DateTimePicker*/}
+          {/*            value={start ? new Date(start) : new Date()}*/}
+          {/*            mode="date"*/}
+          {/*            display={Platform.OS === "ios" ? "spinner" : "default"}*/}
+          {/*            onChange={onStartChange}*/}
+          {/*            minimumDate={new Date()}*/}
+          {/*        />*/}
+          {/*    )}*/}
+          {/*  </View>*/}
+
+          {/*  /!* End date *!/*/}
+          {/*  <View style={{ flex: 1 }}>*/}
+          {/*    <TouchableOpacity*/}
+          {/*        style={[*/}
+          {/*          s.dateInput,*/}
+          {/*          { backgroundColor: c.inputBg, borderColor: fieldErrors.end ? c.error : c.border },*/}
+          {/*        ]}*/}
+          {/*        onPress={() => setShowEndPicker(true)}*/}
+          {/*        activeOpacity={0.7}*/}
+          {/*    >*/}
+          {/*      <Ionicons name="calendar-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />*/}
+          {/*      <Text style={[s.dateInputText, { color: end ? c.text : c.placeholder, flex: 1 }]}>*/}
+          {/*        {end || "End date"}*/}
+          {/*      </Text>*/}
+          {/*    </TouchableOpacity>*/}
+          {/*    {fieldErrors.end ? (*/}
+          {/*        <Text style={[s.fieldError, { color: c.error }]}>{fieldErrors.end}</Text>*/}
+          {/*    ) : null}*/}
+          {/*    {showEndPicker && (*/}
+          {/*        <DateTimePicker*/}
+          {/*            value={end ? new Date(end) : new Date()}*/}
+          {/*            mode="date"*/}
+          {/*            display={Platform.OS === "ios" ? "spinner" : "default"}*/}
+          {/*            onChange={onEndChange}*/}
+          {/*            minimumDate={start ? new Date(start) : new Date()}*/}
+          {/*        />*/}
+          {/*    )}*/}
+          {/*  </View>*/}
+          {/*</View>*/}
           <Text style={[s.sectionLabel, { color: c.textMuted, marginTop: 20 }]}>SCHEDULE DATES</Text>
           <View style={s.dateRow}>
             <View style={{ flex: 1 }}>
