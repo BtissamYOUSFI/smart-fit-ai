@@ -1,14 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
     View, Text, ScrollView, TouchableOpacity,
-    StyleSheet, ActivityIndicator, Alert, RefreshControl,
+    StyleSheet, ActivityIndicator, Alert, RefreshControl, Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/app/context/ThemeContext";
 import { fetchMyPrograms, deleteProgramById, ApiError } from "@/app/shared/service/trainingProgramApi";
 import { TrainingProgram } from "@/app/shared/model/TrainingProgram";
-import { Platform } from "react-native";
 
 function deriveStatus(p: TrainingProgram): "Active" | "Upcoming" | "Completed" {
     const today = new Date().toISOString().split("T")[0];
@@ -18,15 +18,10 @@ function deriveStatus(p: TrainingProgram): "Active" | "Upcoming" | "Completed" {
 }
 
 function completionRate(p: TrainingProgram): number {
-    const today = new Date();
-    const start = new Date(p.startDate);
-    const end   = new Date(p.endDate);
-    if (today < start) return 0;
-    if (today > end)   return 100;
-    return Math.round(
-        (today.getTime() - start.getTime()) /
-        (end.getTime()   - start.getTime()) * 100
-    );
+    const allSessions = p.programWeeks?.flatMap(w => w.sessions ?? []) ?? [];
+    if (allSessions.length === 0) return 0;
+    const completed = allSessions.filter(s => s.status === "COMPLETED").length;
+    return Math.round(completed / allSessions.length * 100);
 }
 
 export default function ProgramsList() {
@@ -53,47 +48,26 @@ export default function ProgramsList() {
         }
     }, []);
 
-    useEffect(() => { loadPrograms(); }, [loadPrograms]);
-
-    // const handleDelete = (p: TrainingProgram) => {
-    //     Alert.alert("Delete Program", `Delete "${p.title}"?`, [
-    //         { text: "Cancel", style: "cancel" },
-    //         {
-    //             text: "Delete", style: "destructive",
-    //             onPress: async () => {
-    //                 try {
-    //                     await deleteProgramById(p.id);
-    //                     setPrograms((prev) => prev.filter((x) => x.id !== p.id));
-    //                 } catch (err) {
-    //                     Alert.alert("Error", err instanceof ApiError ? err.message : "Failed to delete.");
-    //                 }
-    //             },
-    //         },
-    //     ]);
-    // };
+    useFocusEffect(useCallback(() => { loadPrograms(); }, [loadPrograms]));
 
     const handleDelete = (p: TrainingProgram) => {
-        if (Platform.OS === "web") {
-            const confirmed = window.confirm(`Delete "${p.title}"?`);
-            if (confirmed) {
-                deleteProgramById(p.id)
-                    .then(() => setPrograms((prev) => prev.filter((x) => x.id !== p.id)))
-                    .catch((err) => window.alert(err instanceof ApiError ? err.message : "Failed to delete."));
+        const doDelete = async () => {
+            try {
+                await deleteProgramById(p.id);
+                setPrograms((prev) => prev.filter((x) => x.id !== p.id));
+            } catch (err) {
+                const msg = err instanceof ApiError ? err.message : "Failed to delete.";
+                if (Platform.OS === "web") { window.alert(msg); }
+                else { Alert.alert("Error", msg); }
             }
+        };
+
+        if (Platform.OS === "web") {
+            if (window.confirm(`Delete "${p.title}"?`)) doDelete();
         } else {
             Alert.alert("Delete Program", `Delete "${p.title}"?`, [
                 { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete", style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await deleteProgramById(p.id);
-                            setPrograms((prev) => prev.filter((x) => x.id !== p.id));
-                        } catch (err) {
-                            Alert.alert("Error", err instanceof ApiError ? err.message : "Failed to delete.");
-                        }
-                    },
-                },
+                { text: "Delete", style: "destructive", onPress: doDelete },
             ]);
         }
     };
@@ -159,7 +133,6 @@ export default function ProgramsList() {
                 }
             >
                 {programs.length === 0 && !error ? (
-                    /* Empty state */
                     <View style={styles.emptyState}>
                         <View style={[styles.emptyIconBox, { backgroundColor: c.surface }]}>
                             <Ionicons name="calendar-outline" size={48} color={c.textMuted} />
@@ -187,7 +160,6 @@ export default function ProgramsList() {
                                 key={p.id}
                                 style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}
                             >
-                                {/* Tappable card body */}
                                 <TouchableOpacity
                                     onPress={() => router.push({
                                         pathname: "/programs/[id]",
@@ -196,7 +168,6 @@ export default function ProgramsList() {
                                     activeOpacity={0.7}
                                     style={styles.cardBody}
                                 >
-                                    {/* Title row + badge */}
                                     <View style={styles.cardTopRow}>
                                         <Text
                                             style={[styles.cardTitle, { color: c.text }]}
@@ -204,29 +175,17 @@ export default function ProgramsList() {
                                         >
                                             {p.title}
                                         </Text>
-                                        <View
-                                            style={[
-                                                styles.badge,
-                                                { backgroundColor: statusBgColor(status) },
-                                            ]}
-                                        >
-                                            <Text
-                                                style={[
-                                                    styles.badgeText,
-                                                    { color: statusTextColor(status) },
-                                                ]}
-                                            >
+                                        <View style={[styles.badge, { backgroundColor: statusBgColor(status) }]}>
+                                            <Text style={[styles.badgeText, { color: statusTextColor(status) }]}>
                                                 {status}
                                             </Text>
                                         </View>
                                     </View>
 
-                                    {/* Date range */}
                                     <Text style={[styles.cardDate, { color: c.textMuted }]}>
                                         {p.startDate}  {p.endDate}
                                     </Text>
 
-                                    {/* Progress bar */}
                                     <View style={[styles.progressBg, { backgroundColor: c.border }]}>
                                         <View
                                             style={[
@@ -240,7 +199,6 @@ export default function ProgramsList() {
                                     </Text>
                                 </TouchableOpacity>
 
-                                {/* Delete button row */}
                                 <View style={[styles.cardActions, { borderTopColor: c.border }]}>
                                     <TouchableOpacity
                                         style={[styles.deleteBtn, { backgroundColor: c.errorBg, borderColor: c.error }]}
@@ -317,7 +275,6 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
         gap: 12,
     },
-    /* Empty state */
     emptyState: {
         alignItems: "center",
         paddingTop: 80,
@@ -352,7 +309,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "600",
     },
-    /* Program card */
     card: {
         borderRadius: 16,
         borderWidth: 1,
@@ -399,7 +355,6 @@ const styles = StyleSheet.create({
         fontSize: 11,
         marginTop: 5,
     },
-    /* Delete row */
     cardActions: {
         flexDirection: "row",
         justifyContent: "flex-end",

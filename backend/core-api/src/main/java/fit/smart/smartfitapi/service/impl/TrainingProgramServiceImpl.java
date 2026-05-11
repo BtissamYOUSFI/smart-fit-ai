@@ -73,4 +73,29 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         List<TrainingProgram> active = repository.findActiveByUserEmail(email, LocalDate.now());
         return active.isEmpty() ? null : active.get(0);
     }
+
+    @Override
+    @Transactional
+    public TrainingProgram patch(Long id, String title, LocalDate startDate, LocalDate endDate) {
+        TrainingProgram program = repository.findById(id).orElse(null);
+        if (program == null) return null;
+
+        if (title != null && !title.isBlank()) program.setTitle(title);
+        if (startDate != null) program.setStartDate(startDate);
+        if (endDate != null)   program.setEndDate(endDate);
+
+        if (repository.existsOverlappingProgram(
+                program.getUser().getEmail(), program.getStartDate(), program.getEndDate(), id)) {
+            return null;
+        }
+
+        LocalDate newStart = program.getStartDate();
+        LocalDate newEnd   = program.getEndDate();
+        program.getProgramWeeks().removeIf(week ->
+            week.getStartDate() != null &&
+            (week.getStartDate().isBefore(newStart) || week.getStartDate().isAfter(newEnd))
+        );
+
+        return repository.save(program);
+    }
 }
