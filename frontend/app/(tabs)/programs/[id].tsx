@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import {
     View, Text, ScrollView, TouchableOpacity,
@@ -17,6 +17,7 @@ import { WeeklyTemplate } from "@/app/shared/model/WeeklyTemplate";
 import { SessionTemplate } from "@/app/shared/model/SessionTemplate";
 import { Exercise } from "@/app/shared/model/Exercise";
 import { ExerciseTemplate } from "@/app/shared/model/ExerciseTemplate";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -127,6 +128,8 @@ export default function ProgramDetail() {
     const [editEnd,     setEditEnd]         = useState("");
     const [editSaving,  setEditSaving]      = useState(false);
     const [editError,   setEditError]       = useState<string | null>(null);
+    const [showEditStartPicker, setShowEditStartPicker] = useState(false);
+    const [showEditEndPicker,   setShowEditEndPicker]   = useState(false);
 
     function openEdit() {
         if (!program) return;
@@ -134,7 +137,23 @@ export default function ProgramDetail() {
         setEditStart(program.startDate);
         setEditEnd(program.endDate);
         setEditError(null);
+        setShowEditStartPicker(false);
+        setShowEditEndPicker(false);
         setEditVisible(true);
+    }
+
+    function onEditStartChange(event: DateTimePickerEvent, date?: Date) {
+        setShowEditStartPicker(Platform.OS === "ios");
+        if (event.type === "set" && date) {
+            setEditStart(date.toISOString().split("T")[0]);
+        }
+    }
+
+    function onEditEndChange(event: DateTimePickerEvent, date?: Date) {
+        setShowEditEndPicker(Platform.OS === "ios");
+        if (event.type === "set" && date) {
+            setEditEnd(date.toISOString().split("T")[0]);
+        }
     }
 
     async function handleSaveEdit() {
@@ -345,22 +364,75 @@ export default function ProgramDetail() {
                         />
 
                         <Text style={[s.fieldLabel, { color: c.textMuted }]}>START DATE</Text>
-                        <TextInput
-                            style={[s.fieldInput, { backgroundColor: c.inputBg, borderColor: c.border, color: c.text }]}
-                            value={editStart}
-                            onChangeText={setEditStart}
-                            placeholder="YYYY-MM-DD"
-                            placeholderTextColor={c.placeholder}
-                        />
+                        {Platform.OS === "web"
+                            ? React.createElement("input", {
+                                type: "date",
+                                value: editStart,
+                                onChange: (e: any) => setEditStart(e.target.value),
+                                style: {
+                                    height: 46, borderRadius: 10, borderWidth: 1, borderStyle: "solid",
+                                    borderColor: c.border, backgroundColor: c.inputBg, color: c.text,
+                                    fontSize: 14, paddingLeft: 14, paddingRight: 14, width: "100%", outline: "none", cursor: "pointer",
+                                },
+                              })
+                            : (
+                                <>
+                                    <TouchableOpacity
+                                        style={[s.fieldInput, { backgroundColor: c.inputBg, borderColor: c.border, justifyContent: "center" }]}
+                                        onPress={() => setShowEditStartPicker(true)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={{ color: editStart ? c.text : c.placeholder, fontSize: 14 }}>
+                                            {editStart || "Select start date"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {showEditStartPicker && (
+                                        <DateTimePicker
+                                            value={editStart ? new Date(editStart) : new Date()}
+                                            mode="date"
+                                            display={Platform.OS === "ios" ? "spinner" : "default"}
+                                            onChange={onEditStartChange}
+                                        />
+                                    )}
+                                </>
+                              )
+                        }
 
                         <Text style={[s.fieldLabel, { color: c.textMuted }]}>END DATE</Text>
-                        <TextInput
-                            style={[s.fieldInput, { backgroundColor: c.inputBg, borderColor: c.border, color: c.text }]}
-                            value={editEnd}
-                            onChangeText={setEditEnd}
-                            placeholder="YYYY-MM-DD"
-                            placeholderTextColor={c.placeholder}
-                        />
+                        {Platform.OS === "web"
+                            ? React.createElement("input", {
+                                type: "date",
+                                value: editEnd,
+                                onChange: (e: any) => setEditEnd(e.target.value),
+                                style: {
+                                    height: 46, borderRadius: 10, borderWidth: 1, borderStyle: "solid",
+                                    borderColor: c.border, backgroundColor: c.inputBg, color: c.text,
+                                    fontSize: 14, paddingLeft: 14, paddingRight: 14, width: "100%", outline: "none", cursor: "pointer",
+                                },
+                              })
+                            : (
+                                <>
+                                    <TouchableOpacity
+                                        style={[s.fieldInput, { backgroundColor: c.inputBg, borderColor: c.border, justifyContent: "center" }]}
+                                        onPress={() => setShowEditEndPicker(true)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={{ color: editEnd ? c.text : c.placeholder, fontSize: 14 }}>
+                                            {editEnd || "Select end date"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {showEditEndPicker && (
+                                        <DateTimePicker
+                                            value={editEnd ? new Date(editEnd) : new Date()}
+                                            mode="date"
+                                            display={Platform.OS === "ios" ? "spinner" : "default"}
+                                            onChange={onEditEndChange}
+                                            minimumDate={editStart ? new Date(editStart) : undefined}
+                                        />
+                                    )}
+                                </>
+                              )
+                        }
 
                         {editError && (
                             <Text style={[s.editErrorText, { color: c.error }]}>{editError}</Text>

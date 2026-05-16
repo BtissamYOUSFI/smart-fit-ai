@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Modal,
@@ -332,38 +332,68 @@ export default function CreateProgram() {
           {/*</View>*/}
           <Text style={[s.sectionLabel, { color: c.textMuted, marginTop: 20 }]}>SCHEDULE DATES</Text>
           <View style={s.dateRow}>
+            {/* Start date */}
             <View style={{ flex: 1 }}>
-              <View style={[
-                s.dateInput,
-                { backgroundColor: c.inputBg, borderColor: fieldErrors.start ? c.error : c.border },
-              ]}>
+              <View style={[s.dateInput, { backgroundColor: c.inputBg, borderColor: fieldErrors.start ? c.error : c.border }]}>
                 <Ionicons name="calendar-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
-                <TextInput
-                  value={start}
-                  onChangeText={(v) => { setStart(v); setFieldErrors((p) => ({ ...p, start: "" })); }}
-                  placeholder="Start YYYY-MM-DD"
-                  placeholderTextColor={c.placeholder}
-                  style={[s.dateInputText, { color: c.text, flex: 1 }]}
-                />
+                {Platform.OS === "web"
+                  ? React.createElement("input", {
+                      type: "date",
+                      value: start,
+                      onChange: (e: any) => { setStart(e.target.value); setFieldErrors((p) => ({ ...p, start: "" })); },
+                      style: { background: "transparent", border: "none", color: c.text, fontSize: 13, flex: 1, outline: "none", cursor: "pointer", width: "100%" },
+                    })
+                  : (
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowStartPicker(true)} activeOpacity={0.7}>
+                      <Text style={[s.dateInputText, { color: start ? c.text : c.placeholder }]}>
+                        {start || "Start date"}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                }
               </View>
+              {Platform.OS !== "web" && showStartPicker && (
+                <DateTimePicker
+                  value={start ? new Date(start) : new Date()}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={onStartChange}
+                  minimumDate={new Date()}
+                />
+              )}
               {fieldErrors.start ? (
                 <Text style={[s.fieldError, { color: c.error }]}>{fieldErrors.start}</Text>
               ) : null}
             </View>
+            {/* End date */}
             <View style={{ flex: 1 }}>
-              <View style={[
-                s.dateInput,
-                { backgroundColor: c.inputBg, borderColor: fieldErrors.end ? c.error : c.border },
-              ]}>
+              <View style={[s.dateInput, { backgroundColor: c.inputBg, borderColor: fieldErrors.end ? c.error : c.border }]}>
                 <Ionicons name="calendar-outline" size={16} color={c.textMuted} style={{ marginRight: 8 }} />
-                <TextInput
-                  value={end}
-                  onChangeText={(v) => { setEnd(v); setFieldErrors((p) => ({ ...p, end: "" })); }}
-                  placeholder="End YYYY-MM-DD"
-                  placeholderTextColor={c.placeholder}
-                  style={[s.dateInputText, { color: c.text, flex: 1 }]}
-                />
+                {Platform.OS === "web"
+                  ? React.createElement("input", {
+                      type: "date",
+                      value: end,
+                      onChange: (e: any) => { setEnd(e.target.value); setFieldErrors((p) => ({ ...p, end: "" })); },
+                      style: { background: "transparent", border: "none", color: c.text, fontSize: 13, flex: 1, outline: "none", cursor: "pointer", width: "100%" },
+                    })
+                  : (
+                    <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowEndPicker(true)} activeOpacity={0.7}>
+                      <Text style={[s.dateInputText, { color: end ? c.text : c.placeholder }]}>
+                        {end || "End date"}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                }
               </View>
+              {Platform.OS !== "web" && showEndPicker && (
+                <DateTimePicker
+                  value={end ? new Date(end) : new Date()}
+                  mode="date"
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                  onChange={onEndChange}
+                  minimumDate={start ? new Date(start) : new Date()}
+                />
+              )}
               {fieldErrors.end ? (
                 <Text style={[s.fieldError, { color: c.error }]}>{fieldErrors.end}</Text>
               ) : null}
