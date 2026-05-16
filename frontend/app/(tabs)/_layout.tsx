@@ -23,8 +23,8 @@ export default function TabsLayout() {
           height: 60,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: c.accent,
-        tabBarInactiveTintColor: c.textMuted,
+        tabBarActiveTintColor: c.tabBarActive,
+        tabBarInactiveTintColor: "rgba(255,255,255,0.45)",
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
       }}
     >

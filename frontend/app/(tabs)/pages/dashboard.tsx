@@ -134,20 +134,20 @@ export default function Dashboard() {
             }
         >
             {/* ── Header ── */}
-            <View style={s.header}>
+            <View style={[s.header, { backgroundColor: c.tabBar }]}>
                 <View style={s.headerLeft}>
-                    <Text style={[s.greeting, { color: c.textMuted }]}>
+                    <Text style={[s.greeting, { color: "rgba(255,255,255,0.6)" }]}>
                         {greeting()},
                     </Text>
-                    <Text style={[s.username, { color: c.text }]}>
+                    <Text style={[s.username, { color: "#FFFFFF" }]}>
                         {user?.name ?? "Athlete"}
                     </Text>
                 </View>
                 <TouchableOpacity
-                    style={[s.profileBtn, { backgroundColor: c.surfaceElevated }]}
+                    style={[s.profileBtn, { backgroundColor: "rgba(255,255,255,0.12)" }]}
                     onPress={() => router.push("/(tabs)/pages/profile" as any)}
                 >
-                    <Ionicons name="person-circle-outline" size={26} color={c.text} />
+                    <Ionicons name="person-circle-outline" size={26} color="#FFFFFF" />
                 </TouchableOpacity>
             </View>
 
@@ -189,16 +189,16 @@ export default function Dashboard() {
                                     onPress={() => setSelectedDay(d)}
                                     style={[
                                         s.dayPill,
-                                        { backgroundColor: c.surface, borderColor: c.border },
-                                        active && { backgroundColor: c.accent, borderColor: c.accent },
-                                        hasSession && !active && { borderColor: c.accent, borderWidth: 1.5 },
+                                        { backgroundColor: c.tabBar, borderColor: "transparent" },
+                                        active && { backgroundColor: c.blue, borderColor: "transparent" },
+                                        hasSession && !active && { borderColor: c.blue, borderWidth: 1.5 },
                                     ]}
                                 >
                                     <Text
                                         style={[
                                             s.dayPillText,
-                                            { color: c.textSecondary },
-                                            active && { color: c.accentFg },
+                                            { color: "rgba(255,255,255,0.65)" },
+                                            active && { color: "#FFFFFF" },
                                         ]}
                                     >
                                         {d}
@@ -207,7 +207,7 @@ export default function Dashboard() {
                                         <View
                                             style={[
                                                 s.dot,
-                                                { backgroundColor: active ? c.accentFg : c.accent },
+                                                { backgroundColor: "#FFFFFF" },
                                             ]}
                                         />
                                     )}
@@ -401,7 +401,9 @@ const s = StyleSheet.create({
     // KPI row
     kpiScroll:  { marginBottom: 4 },
     kpiContent: { paddingHorizontal: 16, gap: 10 },
-    kpiCard:    { minWidth: 130, borderRadius: 14, padding: 16, paddingBottom: 14 },
+    kpiCard:    { minWidth: 130, borderRadius: 14, padding: 16, paddingBottom: 14,
+                  shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
     kpiValue:   { fontSize: 26, fontWeight: "800", letterSpacing: -1 },
     kpiLabel:   { marginTop: 4, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
 
@@ -417,7 +419,9 @@ const s = StyleSheet.create({
     dot:              { width: 5, height: 5, borderRadius: 3, marginTop: 4 },
 
     // Card
-    card:      { borderRadius: 18, padding: 18, alignItems: "stretch" },
+    card:      { borderRadius: 18, padding: 18, alignItems: "stretch",
+                 shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+                 shadowOpacity: 0.06, shadowRadius: 10, elevation: 3 },
     emptyTitle:{ fontSize: 16, fontWeight: "700", marginBottom: 4, textAlign: "center" },
     emptyDesc: { fontSize: 13, textAlign: "center", marginBottom: 20, lineHeight: 18 },
     actionBtn: { height: 46, borderRadius: 10, alignItems: "center",
