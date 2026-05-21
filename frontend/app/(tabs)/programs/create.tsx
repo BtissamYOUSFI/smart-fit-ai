@@ -5,6 +5,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { ExerciseIcon } from "@/components/ExerciseIcon";
 import { useTheme } from "@/app/context/ThemeContext";
 import { createProgram, ApiError } from "@/app/shared/service/trainingProgramApi";
 import { createWeeklyTemplate } from "@/app/shared/service/weeklyTemplateApi";
@@ -39,12 +40,6 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
 };
 
 const EXERCISE_TYPES: ExerciseType[] = ["SQUAT", "PUSHUP", "BICEP", "PLANK"];
-const EXERCISE_ICONS: Record<ExerciseType, string> = {
-  SQUAT:  "barbell",
-  PUSHUP: "body",
-  BICEP:  "fitness",
-  PLANK:  "remove",
-};
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -535,8 +530,8 @@ export default function CreateProgram() {
                         key={si}
                         style={[s.slotCard, { backgroundColor: c.surfaceElevated, borderColor: c.border }]}
                       >
-                        <Ionicons
-                          name={EXERCISE_ICONS[slot.exerciseType] as any}
+                        <ExerciseIcon
+                          type={slot.exerciseType}
                           size={14}
                           color={c.accent}
                         />
@@ -629,8 +624,8 @@ export default function CreateProgram() {
                     ]}
                     activeOpacity={0.75}
                   >
-                    <Ionicons
-                      name={EXERCISE_ICONS[et] as any}
+                    <ExerciseIcon
+                      type={et}
                       size={20}
                       color={sel ? c.accentFg : c.textSecondary}
                     />

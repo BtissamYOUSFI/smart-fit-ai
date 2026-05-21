@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { ExerciseIcon } from "@/components/ExerciseIcon";
 import { useTheme } from "@/app/context/ThemeContext";
 import { fetchProgramById, deleteProgramById, patchProgram, ApiError } from "@/app/shared/service/trainingProgramApi";
 import { fetchOrGenerateWeek } from "@/app/shared/service/programWeekApi";
@@ -26,16 +27,6 @@ const DAY_SHORT: Record<string, string> = {
     FRIDAY: "Fri", SATURDAY: "Sat", SUNDAY: "Sun",
 };
 
-type IoniconName = keyof typeof Ionicons.glyphMap;
-
-const EXERCISE_ICONS: Record<string, IoniconName> = {
-    SQUAT:  "barbell-outline",
-    PUSHUP: "body-outline",
-    BICEP:  "fitness-outline",
-    PLANK:  "remove-outline",
-};
-
-const DEFAULT_EXERCISE_ICON: IoniconName = "walk-outline";
 
 // ─── Business logic helpers ───────────────────────────────────────────────────
 
@@ -82,11 +73,10 @@ function ExerciseRow({
     mutedColor: string;
     accentColor: string;
 }) {
-    const icon: IoniconName = EXERCISE_ICONS[iconKey] ?? DEFAULT_EXERCISE_ICON;
     return (
         <View style={ex.row}>
             <View style={[ex.iconBox, { backgroundColor: surfaceColor }]}>
-                <Ionicons name={icon} size={14} color={accentColor} />
+                <ExerciseIcon type={iconKey} size={14} color={accentColor} outline />
             </View>
             <Text style={[ex.name, { color: textColor }]} numberOfLines={1}>
                 {name}

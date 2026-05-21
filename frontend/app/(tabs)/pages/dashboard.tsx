@@ -6,6 +6,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { ExerciseIcon } from "@/components/ExerciseIcon";
 import { useTheme } from "@/app/context/ThemeContext";
 import { getAuthenticatedUser } from "@/app/shared/service/userService";
 import { fetchActiveProgram } from "@/app/shared/service/trainingProgramApi";
@@ -25,12 +26,6 @@ const DAY_OF_WEEK_TO_SHORT: Record<string, DayKey> = {
     FRIDAY: "Fri", SATURDAY: "Sat", SUNDAY: "Sun",
 };
 
-const EXERCISE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-    SQUAT:  "barbell",
-    PUSHUP: "body",
-    BICEP:  "fitness",
-    PLANK:  "remove",
-};
 
 function todayDayKey(): DayKey {
     const i = new Date().getDay(); // 0 = Sun
@@ -306,8 +301,8 @@ export default function Dashboard() {
                                 style={[s.exRow, { borderTopColor: c.border }]}
                             >
                                 <View style={[s.exIcon, { backgroundColor: c.surfaceElevated }]}>
-                                    <Ionicons
-                                        name={(EXERCISE_ICONS[ex.exerciseType] ?? "barbell") as any}
+                                    <ExerciseIcon
+                                        type={ex.exerciseType}
                                         size={18}
                                         color={c.textSecondary}
                                     />

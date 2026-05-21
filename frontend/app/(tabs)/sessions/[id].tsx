@@ -6,6 +6,7 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { ExerciseIcon } from "@/components/ExerciseIcon";
 import { useTheme } from "@/app/context/ThemeContext";
 import { fetchSessionById, updateSessionStatus } from "@/app/shared/service/sessionApi";
 import { analyzeRepVideo } from "@/app/shared/service/exerciseRepApi";
@@ -16,12 +17,6 @@ import { AnalysisResult, AnalysisError } from "@/app/shared/model/AnalysisResult
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const EXERCISE_ICONS: Record<string, string> = {
-  SQUAT:  "barbell",
-  PUSHUP: "body",
-  BICEP:  "fitness",
-  PLANK:  "remove",
-};
 
 function avgScore(reps: ExerciseRep[]): number | null {
   const scored = reps
@@ -353,8 +348,6 @@ export default function SessionDetail() {
           {(session.exercises ?? []).map((ex: Exercise) => {
             const open   = expandedEx === ex.id;
             const exAvg  = avgScore(ex.reps ?? []);
-            const iconName = (EXERCISE_ICONS[ex.exerciseType] ?? "fitness") as any;
-
             return (
               <View key={ex.id} style={[ss.exCard, { backgroundColor: c.surface, borderColor: c.border }]}>
                 {/* Exercise accordion header */}
@@ -364,7 +357,7 @@ export default function SessionDetail() {
                   activeOpacity={0.75}
                 >
                   <View style={[ss.exIconBox, { backgroundColor: c.surfaceElevated }]}>
-                    <Ionicons name={iconName} size={20} color={c.accent} />
+                    <ExerciseIcon type={ex.exerciseType} size={20} color={c.accent} />
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={[ss.exName, { color: c.text }]}>{ex.exerciseType}</Text>
