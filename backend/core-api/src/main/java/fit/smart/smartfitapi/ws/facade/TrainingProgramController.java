@@ -4,6 +4,7 @@ import fit.smart.smartfitapi.entity.TrainingProgram;
 import fit.smart.smartfitapi.service.facade.TrainingProgramService;
 import fit.smart.smartfitapi.ws.converter.TrainingProgramConverter;
 import fit.smart.smartfitapi.ws.dto.TrainingProgramDto;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ public class TrainingProgramController {
 
     /** Programs belonging to the authenticated user. */
     @GetMapping("my")
+    @Operation(summary = "Get my training programs", description = "Retrieves all training programs belonging to the authenticated user.")
     public ResponseEntity<List<TrainingProgramDto>> findMine(Authentication auth) {
         List<TrainingProgram> list = service.findByUserEmail(auth.getName());
         if (list.isEmpty()) return ResponseEntity.noContent().build();
@@ -32,6 +34,7 @@ public class TrainingProgramController {
 
     /** Active program (today falls within its period) for the authenticated user. */
     @GetMapping("my/active")
+    @Operation(summary = "Get my active training program", description = "Retrieves the currently active training program for the authenticated user based on today's date.")
     public ResponseEntity<TrainingProgramDto> findActiveProgram(Authentication auth) {
         TrainingProgram program = service.findActiveByUserEmail(auth.getName());
         if (program == null) return ResponseEntity.noContent().build();
@@ -39,6 +42,7 @@ public class TrainingProgramController {
     }
 
     @PostMapping("add-one")
+    @Operation(summary = "Create a new training program", description = "Saves a new training program. Returns a conflict status if an existing program overlaps with the given period.")
     public ResponseEntity<?> save(@RequestBody TrainingProgramDto dto) {
         TrainingProgram entity = converter.toEntity(dto);
         TrainingProgram saved = service.save(entity);
@@ -50,6 +54,7 @@ public class TrainingProgramController {
     }
 
     @GetMapping("all")
+    @Operation(summary = "Get all training programs", description = "Retrieves the complete list of all training programs.")
     public ResponseEntity<List<TrainingProgramDto>> findAll() {
         List<TrainingProgram> list = service.findAll();
         if (list.isEmpty()) return ResponseEntity.noContent().build();
@@ -57,6 +62,7 @@ public class TrainingProgramController {
     }
 
     @PatchMapping("id/{id}")
+    @Operation(summary = "Partially update a training program", description = "Updates specific fields (title, startDate, endDate) of an existing training program. Only the owner can perform this action.")
     public ResponseEntity<?> patch(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
         TrainingProgram existing = service.findById(id);
         if (existing == null) return ResponseEntity.notFound().build();
@@ -72,6 +78,7 @@ public class TrainingProgramController {
     }
 
     @DeleteMapping("id/{id}")
+    @Operation(summary = "Delete a training program by ID", description = "Deletes a training program using its unique identifier. Only the owner can perform this action.")
     public ResponseEntity<Void> deleteById(@PathVariable Long id, Authentication auth) {
         TrainingProgram program = service.findById(id);
         if (program == null) return ResponseEntity.notFound().build();
@@ -81,6 +88,7 @@ public class TrainingProgramController {
     }
 
     @GetMapping("title/{title}")
+    @Operation(summary = "Find training program by title", description = "Retrieves a training program using its title.")
     public ResponseEntity<TrainingProgramDto> findByTitle(@PathVariable String title) {
         TrainingProgram entity = service.findByTitle(title);
         if (entity == null) return ResponseEntity.notFound().build();
@@ -88,6 +96,7 @@ public class TrainingProgramController {
     }
 
     @GetMapping("start-date/{startDate}/end-date/{endDate}")
+    @Operation(summary = "Find training programs by date range", description = "Retrieves all training programs whose start date falls within the specified date range.")
     public ResponseEntity<List<TrainingProgramDto>> findByStartDateBetween(
             @PathVariable LocalDate startDate, @PathVariable LocalDate endDate) {
         List<TrainingProgram> list = service.findByStartDateBetween(startDate, endDate);
@@ -96,6 +105,7 @@ public class TrainingProgramController {
     }
 
     @PutMapping("update")
+    @Operation(summary = "Update a training program", description = "Updates the data of an existing training program. Returns a conflict status if the updated period overlaps with another program.")
     public ResponseEntity<?> update(@RequestBody TrainingProgramDto dto) {
         TrainingProgram entity = converter.toEntity(dto);
         TrainingProgram updated = service.update(entity);
@@ -104,6 +114,7 @@ public class TrainingProgramController {
     }
 
     @GetMapping("id/{id}")
+    @Operation(summary = "Find training program by ID", description = "Retrieves a training program using its unique identifier.")
     public ResponseEntity<TrainingProgramDto> findById(@PathVariable Long id) {
         TrainingProgram entity = service.findById(id);
         if (entity == null) return ResponseEntity.notFound().build();
