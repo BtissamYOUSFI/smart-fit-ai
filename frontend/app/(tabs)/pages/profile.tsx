@@ -96,7 +96,7 @@ export default function Profile() {
             Alert.alert("Password updated", "Your password has been changed successfully.");
         } catch (err: any) {
             const status = err?.response?.status;
-            setPwError(status === 401 ? "Current password is incorrect." : "Failed to update password.");
+            setPwError(status === 400 ? "Current password is incorrect." : "Failed to update password.");
         } finally {
             setPwSaving(false);
         }
