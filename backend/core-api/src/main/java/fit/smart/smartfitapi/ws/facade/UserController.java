@@ -76,7 +76,7 @@ public class UserController {
         }
         User updated = service.changePassword(email, currentPassword, newPassword);
         if (updated == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return ResponseEntity.ok().build();
     }
