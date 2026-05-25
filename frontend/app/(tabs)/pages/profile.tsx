@@ -24,6 +24,16 @@ export default function Profile() {
     const [editValue,   setEditValue]   = useState("");
     const [saving,      setSaving]      = useState(false);
 
+    const [pwVisible,   setPwVisible]   = useState(false);
+    const [pwCurrent,   setPwCurrent]   = useState("");
+    const [pwNew,       setPwNew]       = useState("");
+    const [pwConfirm,   setPwConfirm]   = useState("");
+    const [pwSaving,    setPwSaving]    = useState(false);
+    const [pwError,     setPwError]     = useState<string | null>(null);
+    const [pwShowCur,   setPwShowCur]   = useState(false);
+    const [pwShowNew,   setPwShowNew]   = useState(false);
+    const [pwShowCon,   setPwShowCon]   = useState(false);
+
     // ── Fetch user ──────────────────────────────────────────────────────────
     const fetchUser = useCallback(async () => {
         try {
@@ -59,6 +69,37 @@ export default function Profile() {
         setEditField(field);
         setEditValue(field === "name" ? user?.name ?? "" : user?.email ?? "");
         setEditVisible(true);
+    };
+
+    const openChangePassword = () => {
+        setPwCurrent(""); setPwNew(""); setPwConfirm("");
+        setPwError(null);
+        setPwShowCur(false); setPwShowNew(false); setPwShowCon(false);
+        setPwVisible(true);
+    };
+
+    const handleChangePassword = async () => {
+        if (!pwCurrent || !pwNew || !pwConfirm) {
+            setPwError("All fields are required."); return;
+        }
+        if (pwNew.length < 6) {
+            setPwError("New password must be at least 6 characters."); return;
+        }
+        if (pwNew !== pwConfirm) {
+            setPwError("New passwords do not match."); return;
+        }
+        try {
+            setPwSaving(true);
+            setPwError(null);
+            await userService.changePassword(pwCurrent, pwNew);
+            setPwVisible(false);
+            Alert.alert("Password updated", "Your password has been changed successfully.");
+        } catch (err: any) {
+            const status = err?.response?.status;
+            setPwError(status === 401 ? "Current password is incorrect." : "Failed to update password.");
+        } finally {
+            setPwSaving(false);
+        }
     };
 
     // ── Logout ──────────────────────────────────────────────────────────────
@@ -198,7 +239,7 @@ export default function Profile() {
                 {/* ── Security section ── */}
                 <View style={s.section}>
                     <Text style={[s.sectionTitle, { color: c.textMuted }]}>SECURITY</Text>
-                    <TouchableOpacity style={[s.card, s.row, { backgroundColor: c.surface }]}>
+                    <TouchableOpacity style={[s.card, s.row, { backgroundColor: c.surface }]} onPress={openChangePassword} activeOpacity={0.75}>
                         <View style={s.rowLeft}>
                             <Ionicons
                                 name="lock-closed-outline"
@@ -228,6 +269,60 @@ export default function Profile() {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            {/* ── Change-password modal ── */}
+            <Modal visible={pwVisible} transparent animationType="fade">
+                <View style={[s.modalOverlay, { backgroundColor: c.overlay }]}>
+                    <View style={[s.modalCard, { backgroundColor: c.surface }]}>
+                        <Text style={[s.modalTitle, { color: c.text }]}>Change Password</Text>
+
+                        {([
+                            { label: "Current password", value: pwCurrent, set: setPwCurrent, show: pwShowCur, toggle: setPwShowCur },
+                            { label: "New password",     value: pwNew,     set: setPwNew,     show: pwShowNew, toggle: setPwShowNew },
+                            { label: "Confirm new",      value: pwConfirm, set: setPwConfirm, show: pwShowCon, toggle: setPwShowCon },
+                        ] as const).map((f) => (
+                            <View key={f.label} style={[s.pwFieldWrap, { borderColor: c.border, backgroundColor: c.inputBg }]}>
+                                <TextInput
+                                    style={[s.pwInput, { color: c.text }]}
+                                    value={f.value}
+                                    onChangeText={f.set}
+                                    placeholder={f.label}
+                                    placeholderTextColor={c.placeholder}
+                                    secureTextEntry={!f.show}
+                                    autoCapitalize="none"
+                                />
+                                <TouchableOpacity onPress={() => f.toggle((v) => !v)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                    <Ionicons name={f.show ? "eye-off-outline" : "eye-outline"} size={18} color={c.textMuted} />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+
+                        {pwError && (
+                            <Text style={[s.pwError, { color: c.error }]}>{pwError}</Text>
+                        )}
+
+                        <View style={[s.modalActions, { marginTop: 8 }]}>
+                            <TouchableOpacity
+                                style={[s.modalCancel, { borderColor: c.border }]}
+                                onPress={() => setPwVisible(false)}
+                                disabled={pwSaving}
+                            >
+                                <Text style={[s.modalCancelText, { color: c.textSecondary }]}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[s.modalSave, { backgroundColor: c.accent }, pwSaving && { opacity: 0.6 }]}
+                                onPress={handleChangePassword}
+                                disabled={pwSaving}
+                            >
+                                {pwSaving
+                                    ? <ActivityIndicator size="small" color={c.accentFg} />
+                                    : <Text style={[s.modalSaveText, { color: c.accentFg }]}>Update</Text>
+                                }
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             {/* ── Edit modal ── */}
             <Modal visible={editVisible} transparent animationType="fade">
@@ -343,4 +438,16 @@ const s = StyleSheet.create({
     modalSave:        { flex: 1, height: 46, borderRadius: 10,
                         alignItems: "center", justifyContent: "center" },
     modalSaveText:    { fontWeight: "700" },
+
+    pwFieldWrap: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        marginBottom: 12,
+        height: 48,
+    },
+    pwInput: { flex: 1, fontSize: 14 },
+    pwError: { fontSize: 12, fontWeight: "600", marginBottom: 8, textAlign: "center" },
 });

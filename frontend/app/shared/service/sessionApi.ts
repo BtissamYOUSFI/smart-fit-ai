@@ -21,3 +21,23 @@ export async function updateSessionStatus(id: number, status: Session["status"])
         return res.data;
     } catch (e: any) { handleError(e); }
 }
+
+export interface CreateSessionPayload {
+    dayOfWeek: string;
+    scheduledDate: string;
+    status: string;
+    programWeekId: number;
+    exercises: {
+        exerciseType: string;
+        plannedSets: number;
+        plannedRepsPerSet: number;
+        orderInSession: number;
+    }[];
+}
+
+export async function createSession(payload: CreateSessionPayload): Promise<Session> {
+    try {
+        const res = await api.post(`/session/`, payload);
+        return res.data;
+    } catch (e: any) { handleError(e); }
+}

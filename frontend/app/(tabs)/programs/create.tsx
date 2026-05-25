@@ -140,6 +140,23 @@ export default function CreateProgram() {
     );
   }
 
+  // ── Reset all form state to initial values ───────────────────────────────
+  function resetForm() {
+    setTitle("");
+    setStart("");
+    setEnd("");
+    setMode("ALL_WEEKS");
+    setStep("info");
+    setTemplateIdx(0);
+    setTemplates([]);
+    setModalDay(null);
+    setPickedType("SQUAT");
+    setSets(3);
+    setRepsPerSet(10);
+    setFieldErrors({});
+    setApiError(null);
+  }
+
   // ── Final submit ─────────────────────────────────────────────────────────
   async function handleSubmit() {
     if (submitting.current) return;
@@ -192,6 +209,7 @@ export default function CreateProgram() {
         }
       }
 
+      resetForm();
       router.replace({ pathname: "/programs/[id]", params: { id: String(program.id) } });
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {

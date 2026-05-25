@@ -1,6 +1,8 @@
 package fit.smart.smartfitapi.ws.converter;
 
+import fit.smart.smartfitapi.entity.Exercise;
 import fit.smart.smartfitapi.entity.Session;
+import fit.smart.smartfitapi.repository.ProgramWeekRepository;
 import fit.smart.smartfitapi.ws.dto.SessionDto;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,7 @@ import java.util.List;
 public class SessionConverter {
 
     private final ExerciseConverter exerciseConverter;
+    private final ProgramWeekRepository programWeekRepository;
 
     public SessionDto toDto(Session entity) {
         if (entity == null) return null;
@@ -39,8 +42,14 @@ public class SessionConverter {
         entity.setScheduledDate(dto.getScheduledDate());
         entity.setStatus(dto.getStatus());
         entity.setGlobalScore(dto.getGlobalScore());
+        if (dto.getProgramWeekId() != null) {
+            programWeekRepository.findById(dto.getProgramWeekId())
+                    .ifPresent(entity::setProgramWeek);
+        }
         if (dto.getExercises() != null && !dto.getExercises().isEmpty()) {
-            entity.setExercises(exerciseConverter.toEntities(dto.getExercises()));
+            List<Exercise> exercises = exerciseConverter.toEntities(dto.getExercises());
+            exercises.forEach(ex -> ex.setSession(entity));
+            entity.setExercises(exercises);
         }
         return entity;
     }

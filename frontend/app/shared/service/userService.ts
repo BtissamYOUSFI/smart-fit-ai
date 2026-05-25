@@ -15,3 +15,7 @@ export async function getAuthenticatedUser(): Promise<User> {
     const res = await api.get("/user/me");
     return res.data;
 }
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.patch("/user/me/password", { currentPassword, newPassword });
+}

@@ -4,6 +4,7 @@ import fit.smart.smartfitapi.entity.User;
 import fit.smart.smartfitapi.repository.UserRepository;
 import fit.smart.smartfitapi.service.facade.UserService;
 import lombok.AllArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,5 +48,15 @@ public class UserServiceImpl implements UserService {
         return repository.save(user);
     }
 
+    @Override
+    public User changePassword(String email, String currentPassword, String newPassword) {
+        User user = repository.findByEmail(email);
+        if (user == null) return null;
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) return null;
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        return repository.save(user);
+    }
+
     private final UserRepository repository;
+    private final PasswordEncoder passwordEncoder;
 }

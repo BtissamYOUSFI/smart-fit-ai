@@ -10,4 +10,6 @@ public interface UserService {
     User save(User user);
     int deleteByEmail(String email);
     User update(User user);
+    /** Returns updated user, or null if currentPassword is wrong, or throws if user not found. */
+    User changePassword(String email, String currentPassword, String newPassword);
 }
