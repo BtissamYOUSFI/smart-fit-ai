@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user/")
@@ -61,6 +62,23 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         return ResponseEntity.ok(converter.toDto(updated));
+    }
+
+    @PatchMapping("me/password")
+    public ResponseEntity<Void> changePassword(
+            Authentication authentication,
+            @RequestBody Map<String, String> body) {
+        String email = authentication.getName();
+        String currentPassword = body.get("currentPassword");
+        String newPassword     = body.get("newPassword");
+        if (currentPassword == null || newPassword == null || newPassword.length() < 6) {
+            return ResponseEntity.badRequest().build();
+        }
+        User updated = service.changePassword(email, currentPassword, newPassword);
+        if (updated == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("me")

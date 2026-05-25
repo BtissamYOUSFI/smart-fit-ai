@@ -379,6 +379,13 @@ export default function SessionDetail() {
                 {/* Expanded rep list */}
                 {open && (
                   <View style={[ss.repsList, { borderTopColor: c.border }]}>
+                    {(ex.reps ?? []).length === 0 && (
+                      <View style={[ss.repRow, { borderTopColor: c.background }]}>
+                        <Text style={[ss.repReps, { color: c.textMuted }]}>
+                          No sets found. Delete this session and recreate it to generate rep slots.
+                        </Text>
+                      </View>
+                    )}
                     {(ex.reps ?? []).map((rep: ExerciseRep) => {
                       const analyzed  = !!rep.analysisResult;
                       const uploading = uploadingRep[rep.id];

@@ -11,6 +11,7 @@ import { ExerciseIcon } from "@/components/ExerciseIcon";
 import { useTheme } from "@/app/context/ThemeContext";
 import { fetchProgramById, deleteProgramById, patchProgram, ApiError } from "@/app/shared/service/trainingProgramApi";
 import { fetchOrGenerateWeek } from "@/app/shared/service/programWeekApi";
+import { createSession } from "@/app/shared/service/sessionApi";
 import { TrainingProgram } from "@/app/shared/model/TrainingProgram";
 import { ProgramWeek } from "@/app/shared/model/ProgramWeek";
 import { Session } from "@/app/shared/model/Session";
@@ -121,6 +122,18 @@ export default function ProgramDetail() {
     const [showEditStartPicker, setShowEditStartPicker] = useState(false);
     const [showEditEndPicker,   setShowEditEndPicker]   = useState(false);
 
+    // ── Add-session modal (INDEPENDENT mode) ──────────────────────────────────
+    const [addModal,      setAddModal]      = useState(false);
+    const [addWeekNum,    setAddWeekNum]    = useState<number | null>(null);
+    const [addDay,        setAddDay]        = useState("MONDAY");
+    const [addSessionsMap, setAddSessionsMap] = useState<Record<string, { type: string; sets: number; reps: number }[]>>({});
+    const [addExModal,    setAddExModal]    = useState(false);
+    const [addExType,     setAddExType]     = useState("SQUAT");
+    const [addExSets,     setAddExSets]     = useState(3);
+    const [addExReps,     setAddExReps]     = useState(10);
+    const [addSaving,     setAddSaving]     = useState(false);
+    const [addError,      setAddError]      = useState<string | null>(null);
+
     function openEdit() {
         if (!program) return;
         setEditTitle(program.title);
@@ -220,6 +233,65 @@ export default function ProgramDetail() {
         }
     }
 
+    function scheduledDateFor(weekStart: string, day: string): string {
+        const jsToName: Record<number, string> = {
+            0: "SUNDAY", 1: "MONDAY", 2: "TUESDAY", 3: "WEDNESDAY",
+            4: "THURSDAY", 5: "FRIDAY", 6: "SATURDAY",
+        };
+        const date = new Date(weekStart + "T12:00:00");
+        for (let i = 0; i < 7; i++) {
+            if (jsToName[date.getDay()] === day) break;
+            date.setDate(date.getDate() + 1);
+        }
+        return date.toISOString().split("T")[0];
+    }
+
+    function openAddSessionModal(weekNum: number) {
+        setAddWeekNum(weekNum);
+        setAddDay("MONDAY");
+        setAddSessionsMap({});
+        setAddError(null);
+        setAddModal(true);
+    }
+
+    async function handleSaveAddSession() {
+        if (!program || addWeekNum === null) return;
+        const wk = weekData[addWeekNum];
+        if (!wk) return;
+        const daysWithExercises = Object.entries(addSessionsMap).filter(([, exs]) => exs.length > 0);
+        if (daysWithExercises.length === 0) {
+            setAddError("Add at least one exercise to at least one day.");
+            return;
+        }
+        try {
+            setAddSaving(true);
+            setAddError(null);
+            await Promise.all(
+                daysWithExercises.map(([day, exercises]) =>
+                    createSession({
+                        dayOfWeek: day,
+                        scheduledDate: scheduledDateFor(wk.startDate, day),
+                        status: "PLANNED",
+                        programWeekId: wk.id,
+                        exercises: exercises.map((ex, idx) => ({
+                            exerciseType: ex.type,
+                            plannedSets: ex.sets,
+                            plannedRepsPerSet: ex.reps,
+                            orderInSession: idx + 1,
+                        })),
+                    })
+                )
+            );
+            setAddModal(false);
+            setWeekData((prev) => { const p = { ...prev }; delete p[addWeekNum!]; return p; });
+            loadWeek(addWeekNum);
+        } catch (err) {
+            setAddError(err instanceof ApiError ? err.message : "Failed to save sessions.");
+        } finally {
+            setAddSaving(false);
+        }
+    }
+
     const handleDelete = () => {
         const doDelete = async () => {
             try {
@@ -279,9 +351,10 @@ export default function ProgramDetail() {
 
     // ─── Derived state ────────────────────────────────────────────────────────
 
-    const status    = deriveStatus(program);
-    const numWeeks  = totalWeeks(program);
-    const curWeekNo = currentWeekNumber(program);
+    const status        = deriveStatus(program);
+    const numWeeks      = totalWeeks(program);
+    const curWeekNo     = currentWeekNumber(program);
+    const isIndependent = !program.weeklyTemplates || program.weeklyTemplates.length === 0;
 
     const statusBg = status === "Active"
         ? c.blueBg
@@ -441,6 +514,170 @@ export default function ProgramDetail() {
                         </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>
+            </Modal>
+
+            {/* ── Add-session modal (INDEPENDENT mode) ── */}
+            <Modal visible={addModal} transparent animationType="slide" onRequestClose={() => setAddModal(false)}>
+                <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: "flex-end" }}>
+                    <View style={[s.editSheet, { backgroundColor: c.surface }]}>
+                        <View style={s.editHeader}>
+                            <Text style={[s.editTitle, { color: c.text }]}>Add session</Text>
+                            <TouchableOpacity onPress={() => setAddModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                <Ionicons name="close-outline" size={24} color={c.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>DAY OF WEEK</Text>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
+                            {(["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"] as const).map((d) => {
+                                const hasEx = (addSessionsMap[d]?.length ?? 0) > 0;
+                                const active = addDay === d;
+                                return (
+                                    <TouchableOpacity
+                                        key={d}
+                                        onPress={() => setAddDay(d)}
+                                        style={[
+                                            s.dayChip,
+                                            { backgroundColor: active ? c.accent : c.background, borderColor: active ? c.accent : hasEx ? c.accent : c.border },
+                                        ]}
+                                        activeOpacity={0.75}
+                                    >
+                                        <Text style={[s.dayChipText, { color: active ? c.accentFg : hasEx ? c.accent : c.textMuted }]}>
+                                            {DAY_SHORT[d]}
+                                        </Text>
+                                        {hasEx && (
+                                            <View style={[s.dayDot, { backgroundColor: active ? c.accentFg : c.accent }]} />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>EXERCISES</Text>
+                        {(addSessionsMap[addDay] ?? []).length === 0 ? (
+                            <Text style={[s.emptyNote, { color: c.textMuted, marginBottom: 8 }]}>No exercises for {DAY_SHORT[addDay]} yet.</Text>
+                        ) : (
+                            <View style={{ gap: 6, marginBottom: 8 }}>
+                                {(addSessionsMap[addDay] ?? []).map((ex, idx) => (
+                                    <View key={idx} style={[s.sessionBlock, { backgroundColor: c.background, borderColor: c.border, flexDirection: "row", alignItems: "center", gap: 10 }]}>
+                                        <ExerciseIcon type={ex.type} size={16} color={c.accent} outline />
+                                        <Text style={[{ flex: 1, fontSize: 13, fontWeight: "600", color: c.text }]}>{ex.type}</Text>
+                                        <Text style={[{ fontSize: 12, color: c.textMuted }]}>{ex.sets} × {ex.reps}</Text>
+                                        <TouchableOpacity
+                                            onPress={() => setAddSessionsMap((prev) => ({
+                                                ...prev,
+                                                [addDay]: (prev[addDay] ?? []).filter((_, i) => i !== idx),
+                                            }))}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                        >
+                                            <Ionicons name="trash-outline" size={16} color={c.error} />
+                                        </TouchableOpacity>
+                                    </View>
+                                ))}
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            style={[s.outlineBtn, { borderColor: c.accent }]}
+                            onPress={() => { setAddExType("SQUAT"); setAddExSets(3); setAddExReps(10); setAddExModal(true); }}
+                            activeOpacity={0.75}
+                        >
+                            <Ionicons name="add-outline" size={16} color={c.accent} />
+                            <Text style={[s.outlineBtnText, { color: c.accent }]}>Add exercise</Text>
+                        </TouchableOpacity>
+
+                        {addError && (
+                            <Text style={[s.editErrorText, { color: c.error }]}>{addError}</Text>
+                        )}
+
+                        <TouchableOpacity
+                            style={[s.saveBtn, { backgroundColor: addSaving ? c.border : c.accent }]}
+                            onPress={handleSaveAddSession}
+                            disabled={addSaving}
+                            activeOpacity={0.8}
+                        >
+                            {addSaving
+                                ? <ActivityIndicator size="small" color={c.accentFg} />
+                                : (() => {
+                                    const n = Object.values(addSessionsMap).filter((exs) => exs.length > 0).length;
+                                    return (
+                                        <Text style={[s.saveBtnText, { color: c.accentFg }]}>
+                                            {n > 0 ? `Save ${n} session${n > 1 ? "s" : ""}` : "Save sessions"}
+                                        </Text>
+                                    );
+                                  })()
+                            }
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* ── Exercise picker sub-modal ── */}
+            <Modal visible={addExModal} transparent animationType="slide" onRequestClose={() => setAddExModal(false)}>
+                <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+                    <View style={[s.editSheet, { backgroundColor: c.surface }]}>
+                        <View style={s.editHeader}>
+                            <Text style={[s.editTitle, { color: c.text }]}>Add exercise</Text>
+                            <TouchableOpacity onPress={() => setAddExModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                <Ionicons name="close-outline" size={24} color={c.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>TYPE</Text>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 4 }}>
+                            {(["SQUAT","PUSHUP","BICEP","PLANK"] as const).map((t) => (
+                                <TouchableOpacity
+                                    key={t}
+                                    onPress={() => setAddExType(t)}
+                                    style={[
+                                        s.exTypeChip,
+                                        { backgroundColor: addExType === t ? c.accent : c.background, borderColor: addExType === t ? c.accent : c.border },
+                                    ]}
+                                    activeOpacity={0.75}
+                                >
+                                    <ExerciseIcon type={t} size={20} color={addExType === t ? c.accentFg : c.accent} />
+                                    <Text style={[s.exTypeChipText, { color: addExType === t ? c.accentFg : c.text }]}>{t}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>SETS</Text>
+                        <View style={s.stepperRow}>
+                            <TouchableOpacity style={[s.stepperBtn, { backgroundColor: c.background, borderColor: c.border }]} onPress={() => setAddExSets((v) => Math.max(1, v - 1))}>
+                                <Text style={[s.stepperBtnText, { color: c.text }]}>−</Text>
+                            </TouchableOpacity>
+                            <Text style={[s.stepperValue, { color: c.text }]}>{addExSets}</Text>
+                            <TouchableOpacity style={[s.stepperBtn, { backgroundColor: c.background, borderColor: c.border }]} onPress={() => setAddExSets((v) => v + 1)}>
+                                <Text style={[s.stepperBtnText, { color: c.text }]}>+</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={[s.fieldLabel, { color: c.textMuted }]}>REPS PER SET</Text>
+                        <View style={s.stepperRow}>
+                            <TouchableOpacity style={[s.stepperBtn, { backgroundColor: c.background, borderColor: c.border }]} onPress={() => setAddExReps((v) => Math.max(1, v - 1))}>
+                                <Text style={[s.stepperBtnText, { color: c.text }]}>−</Text>
+                            </TouchableOpacity>
+                            <Text style={[s.stepperValue, { color: c.text }]}>{addExReps}</Text>
+                            <TouchableOpacity style={[s.stepperBtn, { backgroundColor: c.background, borderColor: c.border }]} onPress={() => setAddExReps((v) => v + 1)}>
+                                <Text style={[s.stepperBtnText, { color: c.text }]}>+</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity
+                            style={[s.saveBtn, { backgroundColor: c.accent, marginTop: 16 }]}
+                            onPress={() => {
+                                setAddSessionsMap((prev) => ({
+                                    ...prev,
+                                    [addDay]: [...(prev[addDay] ?? []), { type: addExType, sets: addExSets, reps: addExReps }],
+                                }));
+                                setAddExModal(false);
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={[s.saveBtnText, { color: c.accentFg }]}>Add to session</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
             </Modal>
 
             <ScrollView
@@ -669,14 +906,39 @@ export default function ProgramDetail() {
                                                         </View>
                                                     ))
                                                 ) : (
-                                                    <Text style={[s.emptyNote, { color: c.textMuted }]}>
-                                                        Rest week — no sessions scheduled.
-                                                    </Text>
+                                                    isIndependent ? (
+                                                        <TouchableOpacity
+                                                            style={[s.addSessionBtn, { borderColor: c.accent }]}
+                                                            onPress={() => openAddSessionModal(wn)}
+                                                            activeOpacity={0.75}
+                                                        >
+                                                            <Ionicons name="add-circle-outline" size={15} color={c.accent} />
+                                                            <Text style={[s.addSessionBtnText, { color: c.accent }]}>
+                                                                Add session
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    ) : (
+                                                        <Text style={[s.emptyNote, { color: c.textMuted }]}>
+                                                            Rest week — no sessions scheduled.
+                                                        </Text>
+                                                    )
                                                 )
                                             ) : (
                                                 <Text style={[s.emptyNote, { color: c.textMuted }]}>
                                                     Tap to load...
                                                 </Text>
+                                            )}
+                                            {isIndependent && wk && wk.sessions && wk.sessions.length > 0 && (
+                                                <TouchableOpacity
+                                                    style={[s.addSessionBtn, { borderColor: c.accent }]}
+                                                    onPress={() => openAddSessionModal(wn)}
+                                                    activeOpacity={0.75}
+                                                >
+                                                    <Ionicons name="add-circle-outline" size={15} color={c.accent} />
+                                                    <Text style={[s.addSessionBtnText, { color: c.accent }]}>
+                                                        Add another session
+                                                    </Text>
+                                                </TouchableOpacity>
                                             )}
                                         </View>
                                     )}
@@ -1038,5 +1300,88 @@ const s = StyleSheet.create({
     saveBtnText: {
         fontSize: 15,
         fontWeight: "700",
+    },
+    addSessionBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        height: 38,
+        borderRadius: 9,
+        borderWidth: 1,
+        marginTop: 4,
+    },
+    addSessionBtnText: {
+        fontSize: 13,
+        fontWeight: "600",
+    },
+    dayChip: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        borderWidth: 1,
+        alignItems: "center",
+    },
+    dayChipText: {
+        fontSize: 12,
+        fontWeight: "700",
+    },
+    dayDot: {
+        width: 5,
+        height: 5,
+        borderRadius: 3,
+        marginTop: 3,
+    },
+    outlineBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        height: 42,
+        borderRadius: 10,
+        borderWidth: 1,
+        marginTop: 4,
+    },
+    outlineBtnText: {
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    exTypeChip: {
+        alignItems: "center",
+        gap: 4,
+        borderRadius: 10,
+        padding: 10,
+        borderWidth: 1,
+        minWidth: 72,
+    },
+    exTypeChipText: {
+        fontSize: 10,
+        fontWeight: "700",
+    },
+    stepperRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 20,
+        marginBottom: 4,
+        marginTop: 4,
+    },
+    stepperBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    stepperBtnText: {
+        fontSize: 20,
+        fontWeight: "600",
+        lineHeight: 24,
+    },
+    stepperValue: {
+        fontSize: 22,
+        fontWeight: "700",
+        minWidth: 40,
+        textAlign: "center",
     },
 });

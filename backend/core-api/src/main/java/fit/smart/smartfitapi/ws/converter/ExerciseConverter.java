@@ -1,6 +1,7 @@
 package fit.smart.smartfitapi.ws.converter;
 
 import fit.smart.smartfitapi.entity.Exercise;
+import fit.smart.smartfitapi.entity.ExerciseRep;
 import fit.smart.smartfitapi.ws.dto.ExerciseDto;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -41,6 +42,17 @@ public class ExerciseConverter {
         entity.setPlannedRepsPerSet(dto.getPlannedRepsPerSet());
         entity.setScore(dto.getScore());
         entity.setOrderInSession(dto.getOrderInSession());
+        // Auto-generate rep slots for new exercises
+        if (dto.getId() == null && dto.getPlannedSets() != null && dto.getPlannedSets() > 0) {
+            List<ExerciseRep> reps = new ArrayList<>();
+            for (int i = 1; i <= dto.getPlannedSets(); i++) {
+                reps.add(ExerciseRep.builder()
+                        .repNumber(i)
+                        .exercise(entity)
+                        .build());
+            }
+            entity.setReps(reps);
+        }
         return entity;
     }
 
