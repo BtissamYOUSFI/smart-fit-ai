@@ -41,11 +41,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User update(User user) {
-        if (repository.findByEmail(user.getEmail()) == null) {
-            return null;
-        }
-        return repository.save(user);
+    public User update(User incoming) {
+        User existing = incoming.getId() != null
+                ? repository.findById(incoming.getId()).orElse(null)
+                : repository.findByEmail(incoming.getEmail());
+        if (existing == null) return null;
+        if (incoming.getName()         != null) existing.setName(incoming.getName());
+        if (incoming.getEmail()        != null) existing.setEmail(incoming.getEmail());
+        if (incoming.getPasswordHash() != null) existing.setPasswordHash(incoming.getPasswordHash());
+        return repository.save(existing);
     }
 
     @Override
