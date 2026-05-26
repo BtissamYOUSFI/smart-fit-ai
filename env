@@ -1,7 +1,0 @@
-MYSQL_ROOT_PASSWORD=super_secure_root_pwd
-MYSQL_DATABASE=smart_fit_ai
-MYSQL_USER=smartfit_user
-MYSQL_PASSWORD=strong_user_pwd
-JWT_SECRET=6xL3nSHhoj0FHtk1F7+6dLxTJbUexj1Qr9kyCtEzHZ/sD2GVqqk7yz2sG5lZ9nXA1ciIebvrrDL3ibVlxmZg1w==
-JWT_EXPIRATION=604800000
-AI_API_URL=https://soufianebenseddiq-smartfit-ai-api.hf.space
