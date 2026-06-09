@@ -4,6 +4,7 @@ import fit.smart.smartfitapi.entity.User;
 import fit.smart.smartfitapi.service.facade.UserService;
 import fit.smart.smartfitapi.ws.converter.UserConverter;
 import fit.smart.smartfitapi.ws.dto.UserDto;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class UserController {
 
     @GetMapping("email/{email}")
+    @Operation(summary = "Find user by email", description = "Retrieves a user using their email address.")
     public ResponseEntity<UserDto> findByEmail(@PathVariable String email) {
         User user = service.findByEmail(email);
         if (user == null) {
@@ -29,6 +31,7 @@ public class UserController {
     }
 
     @GetMapping("all")
+    @Operation(summary = "Get all users", description = "Retrieves the complete list of all registered users.")
     public ResponseEntity<List<UserDto>> findAll() {
         List<User> users= service.findAll();
         if (users.isEmpty()) {
@@ -38,6 +41,7 @@ public class UserController {
     }
 
     @PostMapping("add-one")
+    @Operation(summary = "Create a new user", description = "Saves a new user. Returns a conflict status if the user already exists.")
     public ResponseEntity<UserDto> save(@RequestBody UserDto userDto) {
         User user = converter.toEntity(userDto);
         User saved = service.save(user);
@@ -48,6 +52,7 @@ public class UserController {
     }
 
     @DeleteMapping("email/{email}")
+    @Operation(summary = "Delete user by email", description = "Deletes a user using their email address.")
     public ResponseEntity<Integer> delete(@PathVariable String email) {
         int result = service.deleteByEmail(email);
         if (result > 0) { return ResponseEntity.ok(result);}
@@ -55,6 +60,7 @@ public class UserController {
     }
 
     @PutMapping("update")
+    @Operation(summary = "Update a user", description = "Updates the data of an existing user.")
     public ResponseEntity<UserDto> update(@RequestBody UserDto userDto) {
         User user = converter.toEntity(userDto);
         User updated = service.update(user);
@@ -65,6 +71,7 @@ public class UserController {
     }
 
     @PatchMapping("me/password")
+    @Operation(summary = "Change current user password", description = "Allows the authenticated user to change their password by providing the current and new password.")
     public ResponseEntity<Void> changePassword(
             Authentication authentication,
             @RequestBody Map<String, String> body) {
@@ -82,6 +89,7 @@ public class UserController {
     }
 
     @GetMapping("me")
+    @Operation(summary = "Get current user", description = "Retrieves the profile of the currently authenticated user.")
     public ResponseEntity<UserDto> me(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String email = userDetails.getUsername();

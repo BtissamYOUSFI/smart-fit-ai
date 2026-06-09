@@ -4,6 +4,7 @@ import fit.smart.smartfitapi.entity.VideoCapture;
 import fit.smart.smartfitapi.service.facade.VideoCaptureService;
 import fit.smart.smartfitapi.ws.converter.VideoCaptureConverter;
 import fit.smart.smartfitapi.ws.dto.VideoCaptureDto;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +17,14 @@ import java.util.List;
 public class VideoCaptureController {
 
     @GetMapping("")
+    @Operation(summary = "Get all video captures", description = "Retrieves the complete list of all video captures.")
     public ResponseEntity<List<VideoCaptureDto>> findAll() {
         List<VideoCapture> videoCaptures = service.findAll();
         return new ResponseEntity<>(converter.toDtos(videoCaptures), HttpStatus.OK);
     }
 
     @GetMapping("id/{id}")
+    @Operation(summary = "Find video capture by ID", description = "Retrieves a video capture using its unique identifier.")
     public ResponseEntity<VideoCaptureDto> findById(@PathVariable Long id) {
         VideoCapture byId = service.findById(id);
         HttpStatus httpStatus;
@@ -34,6 +37,7 @@ public class VideoCaptureController {
     }
 
     @PostMapping("")
+    @Operation(summary = "Create a new video capture", description = "Saves a new video capture. Returns a conflict status if it already exists.")
     public ResponseEntity<VideoCaptureDto> save(@RequestBody VideoCaptureDto videoCaptureDto) {
         VideoCapture saved = service.save(converter.toEntity(videoCaptureDto));
         HttpStatus httpStatus;
@@ -46,6 +50,7 @@ public class VideoCaptureController {
     }
 
     @DeleteMapping("id/{id}")
+    @Operation(summary = "Delete video capture by ID", description = "Deletes a video capture using its unique identifier.")
     public ResponseEntity<Integer> delete(@PathVariable Long id) {
         int i = service.deleteById(id);
         HttpStatus httpStatus;

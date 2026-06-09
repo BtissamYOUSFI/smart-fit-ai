@@ -4,6 +4,7 @@ import fit.smart.smartfitapi.entity.ExerciseTemplate;
 import fit.smart.smartfitapi.service.facade.ExerciseTemplateService;
 import fit.smart.smartfitapi.ws.converter.ExerciseTemplateConverter;
 import fit.smart.smartfitapi.ws.dto.ExerciseTemplateDto;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +17,14 @@ import java.util.List;
 public class ExerciseTemplateController {
 
     @GetMapping("")
+    @Operation(summary = "Get all exercise templates", description = "Retrieves the complete list of all exercise templates.")
     public ResponseEntity<List<ExerciseTemplateDto>> findAll() {
         List<ExerciseTemplate> exerciseTemplates = service.findAll();
         return new ResponseEntity<>(converter.toDtos(exerciseTemplates), HttpStatus.OK);
     }
 
     @GetMapping("id/{id}")
+    @Operation(summary = "Find exercise template by ID", description = "Retrieves an exercise template using its unique identifier.")
     public ResponseEntity<ExerciseTemplateDto> findById(@PathVariable Long id) {
         ExerciseTemplate byId = service.findById(id);
         HttpStatus httpStatus;
@@ -34,6 +37,7 @@ public class ExerciseTemplateController {
     }
 
     @PostMapping("")
+    @Operation(summary = "Create a new exercise template", description = "Saves a new exercise template. Returns a conflict status if it already exists.")
     public ResponseEntity<ExerciseTemplateDto> save(@RequestBody ExerciseTemplateDto exerciseTemplateDto) {
         ExerciseTemplate saved = service.save(converter.toEntity(exerciseTemplateDto));
         HttpStatus httpStatus;
@@ -46,6 +50,7 @@ public class ExerciseTemplateController {
     }
 
     @DeleteMapping("id/{id}")
+    @Operation(summary = "Delete exercise template by ID", description = "Deletes an exercise template using its unique identifier.")
     public ResponseEntity<Integer> delete(@PathVariable Long id) {
         int i = service.deleteById(id);
         HttpStatus httpStatus;

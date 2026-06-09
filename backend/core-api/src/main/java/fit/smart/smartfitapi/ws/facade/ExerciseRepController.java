@@ -8,6 +8,7 @@ import fit.smart.smartfitapi.service.facade.ExerciseRepService;
 import fit.smart.smartfitapi.util.enums.CaptureMode;
 import fit.smart.smartfitapi.ws.converter.ExerciseRepConverter;
 import fit.smart.smartfitapi.ws.dto.ExerciseRepDto;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
@@ -52,11 +53,13 @@ public class ExerciseRepController {
     }
 
     @GetMapping("exercise/{exerciseId}")
+    @Operation(summary = "Find reps by exercise", description = "Retrieves all exercise reps associated with a given exercise ID.")
     public ResponseEntity<List<ExerciseRepDto>> findByExercise(@PathVariable Long exerciseId) {
         return ResponseEntity.ok(repConverter.toDtos(repService.findByExerciseId(exerciseId)));
     }
 
     @GetMapping("id/{id}")
+    @Operation(summary = "Find rep by ID", description = "Retrieves an exercise rep using its unique identifier.")
     public ResponseEntity<ExerciseRepDto> findById(@PathVariable Long id) {
         ExerciseRep rep = repService.findById(id);
         if (rep == null) return ResponseEntity.notFound().build();
@@ -64,12 +67,14 @@ public class ExerciseRepController {
     }
 
     @PostMapping("")
+    @Operation(summary = "Create a new exercise rep", description = "Saves a new exercise rep and returns it with a created status.")
     public ResponseEntity<ExerciseRepDto> save(@RequestBody ExerciseRepDto dto) {
         ExerciseRep saved = repService.save(repConverter.toEntity(dto));
         return ResponseEntity.status(HttpStatus.CREATED).body(repConverter.toDto(saved));
     }
 
     @DeleteMapping("id/{id}")
+    @Operation(summary = "Delete exercise rep by ID", description = "Deletes an exercise rep using its unique identifier.")
     public ResponseEntity<Integer> delete(@PathVariable Long id) {
         int i = repService.deleteById(id);
         return i > 0 ? ResponseEntity.ok(i) : ResponseEntity.notFound().build();
@@ -82,6 +87,7 @@ public class ExerciseRepController {
      * persists VideoCapture + AnalysisResult, recomputes exercise score.
      */
     @PostMapping(value = "id/{repId}/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Analyze a rep video", description = "Accepts a video file, forwards it to the AI service for analysis, persists the video capture and analysis result, and recomputes the exercise score.")
     public ResponseEntity<?> analyzeRep(
             @PathVariable Long repId,
             @RequestParam("file") MultipartFile file) throws IOException {

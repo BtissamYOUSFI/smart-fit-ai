@@ -22,7 +22,10 @@ public class CorsConfig {
                 "http://192.168.137.138:8080",
                 "http://54.221.13.194",        // IP Frontend
                 "http://54.221.13.194:8080",
-                "http://192.168.1.19:8081"
+                "http://192.168.1.19:8081",
+                "http://34.203.224.177",
+                "http://34.203.224.177:8081",
+                "http://34.203.224.177:4200"
 
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
