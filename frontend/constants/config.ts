@@ -12,6 +12,6 @@
 //
 
 
-const PUBLIC_IP = "54.221.13.194";
+const PUBLIC_IP = "34.203.224.177";
 
 export const API_URL = `http://${PUBLIC_IP}:8080/api`;
