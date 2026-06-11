@@ -44,8 +44,5 @@ Thumbs.db
 !backend/ai-api/app/models/training-result/lstm_best.tflite
 **/__pycache__/
 backend/ai-api/
-<<<<<<< HEAD
-CLAUDE.md
 report/
-=======
->>>>>>> 9bc2de11af86ecc10be8bc8b627b9fc1b8f62fb2
+
